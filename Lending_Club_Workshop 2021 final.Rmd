@@ -31,7 +31,7 @@ library(broom) # use broom:augment() to get tidy table with regression output, r
 library(huxtable) # to get summary table of all models produced
 library(caret) # to train more advanced models (k-fold cross-validation, stepwise regression, LASSO)
 library(zoo) #to allow for time series operations
-
+library(skimr)
 ```
 
 
@@ -80,26 +80,81 @@ The data is now in a clean format stored in the dataframe "lc_clean."
 
 # Q1. Explore the data by building some visualizations as suggested below. Please add at least TWO visualizations of your own. 
 
+
+```{r}
+skim(lc_clean)
+```
+
 Provide your answers in the code block below. (Look at "Lending_Club_Session1_and_2.html" for some hints on how to do this using ggplot.)
 
 ```{r, data_visualisation, message=FALSE, eval=FALSE}
 # Build a histogram of interest rates. Make sure it looks nice!
 
+ggplot(lc_clean, aes(x=int_rate))+  
+  geom_histogram(binwidth=0.01)+scale_x_continuous(labels = scales::percent) +labs(x="Interest Rate")
+```
 
+
+```{r}
 # Build a histogram of interest rates but use different color for loans of different grades 
 
+ggplot(lc_clean, aes(x=int_rate, fill=grade))+  geom_histogram(binwidth=0.01)+scale_x_continuous(labels = scales::percent)+ labs(x="Interest Rate") 
+```
 
+```{r}
 # Produce a scatter plot of loan amount against interest rate and add visually the line of best fit
+ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(y=loan_amnt, x=int_rate)) + 
+  geom_point(size=0.1, alpha=0.5)+ 
+  geom_smooth(method="lm", se=0) + labs(y="Loan Amount ($)", x="Interest Rate")
+```
 
 
+
+```{r}
 # Produce a scatter plot of annual income against interest rate and add visually the line of best fit 
 
+ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(y=annual_inc, x=int_rate)) + 
+  geom_point(size=0.1, alpha=0.5)+ 
+  geom_smooth(method="lm", se=0) + labs(y="Annual Income ($)", x="Interest Rate")
+```
 
+
+```{r}
 # In the same axes, produce box plots of the interest rate for every value of delinquencies
+
+ggplot(lc_clean , aes(y=int_rate, x=delinq_2yrs, colour= delinq_2yrs)) + 
+  geom_boxplot()+
+  # geom_jitter()+
+  theme_bw()+
+   scale_y_continuous(labels=scales::percent)+
+  theme(legend.position = "none")+
+  labs(
+    title = "Do delinquencies in the last two years impact interest rate charged?",
+    x= "Number of delinquecies in last two years", y="Interest Rate"
+  )
+
+```
 
 
 # Add 2 visualizations of your own
 
+```{r}
+ggplot(lc_clean, aes(x=int_rate, fill=grade, alpha = 0.2))+  
+  geom_density()+
+  facet_grid(rows = vars(grade))+
+  theme_bw()+
+  theme(legend.position = "none")+
+  scale_x_continuous(labels = scales::percent)+ labs(x="Interest Rate",y="Density")
+```
+
+```{r}
+ggplot(lc_clean, aes(x=home_ownership, y=int_rate, colour=home_ownership))+  
+  geom_boxplot()+
+  theme_bw()+
+  theme(legend.position = "none")+
+  coord_flip()+ scale_y_continuous(labels=scales::percent)+
+  labs(y="Interest Rate", x="Home Ownership")+
+  NULL
 ```
 
 # Estimate simple linear regression models
@@ -109,9 +164,8 @@ We start with a simple but quite powerful model.
 ```{r, simple regression, message=FALSE, eval=FALSE}
 # Use the lm command to estimate a regression model with the following variables "loan_amnt",  "term", "dti", "annual_inc", and "grade"
 
-model1<-lm( #add code here
-  )
-summary(model)
+model1<-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc + grade, data = lc_clean)
+summary(model1)
 
 ```
 
@@ -131,24 +185,39 @@ Let's build progressively more complex models, with more features.
 ```{r, Feature Engineering, message=FALSE, eval=FALSE}
 #Add to model 1 an interaction between loan amount and grade. Use the "var1*var2" notation to define an interaction term in the linear regression model. This will add the interaction and the individual variables to the model. 
 
-model2 <-
+model2 <-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc + grade + loan_amnt*grade, data = lc_clean)
+
 summary(model2)
+```
+
+```{r}
 #Add to the model you just created above the square and the cube of annual income. Use the poly(var_name,3) command as a variable in the linear regression model.  
 
-model3 <-  
+model3 <-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc + 
+              grade + loan_amnt*grade +
+              poly(annual_inc, 3),
+            data = lc_clean)
+
 summary(model3)
+```
+```{r}
 #Continuing with the previous model, instead of annual income as a continuous variable break it down into quartiles and use quartile dummy variables. You can do this with the following command. 
   
 lc_clean <- lc_clean %>% 
   mutate(quartiles_annual_inc = as.factor(ntile(annual_inc, 4)))
 
-model4 <-
-summary(model4)  
+model4 <- lm(formula = int_rate ~ loan_amnt + term + dti + quartiles_annual_inc + 
+              grade + loan_amnt*grade+
+              poly(annual_inc, 3),
+            data = lc_clean)
+summary(model4) 
+```
 
+```{r}
 #Compare the performance of these four models using the anova command
 anova(model1, model2, model3, model4)
-  
 ```
+ 
 
 ## Q3. Answer the following questions {-}
 a. Which of the four models has the most explanatory power in sample?
@@ -164,17 +233,25 @@ Let's check the predictive accuracy of model2 by holding out a subset of the dat
 
 ```{r, out of sample testing}
 # split the data in dataframe called "testing" and another one called  "training". The "training" dataframe should have 80% of the data and the "testing" dataframe 20%.
+set.seed(4444)
+train_test_split <- initial_split(lc_clean, prop = 0.80)
+training <- training(train_test_split)
+testing <- testing(train_test_split)
 
 
 
 # Fit model2 on the training set 
 model2_training<-lm(int_rate ~ loan_amnt + term+ dti + annual_inc + grade +grade:loan_amnt, training)
+
 # Calculate the RMSE of the model in the training set (in sample)
 rmse_training<-sqrt(mean((residuals(model2_training))^2))
+
 # Use the model to make predictions out of sample in the testing set
 pred<-predict(model2_training,testing)
+
 # Calculate the RMSE of the model in the testing set (out of sample)
 rmse_testing<- RMSE(pred,testing$int_rate)
+
 
 ```
 
@@ -340,9 +417,38 @@ First, investigate graphically whether there are any time trends in the interest
 ```{r, time trends}
 
 #linear time trend (add code below)
+lc_clean$issue_d = as.Date(lc_clean$issue_d)
+
+lc_clean <- lc_clean %>% 
+  mutate(date = as.yearmon(issue_d,"%m/%Y"))
+
+lc_clean_time <- lc_clean %>% 
+  select(int_rate, date) %>%
+  filter(date != "Jun 2007") %>% # filtering (add comment)
+  group_by(date) %>% 
+  summarise(avg_int_rate = mean(int_rate))
+
+lc_clean_time %>% 
+  ggplot(aes(x = date,y = avg_int_rate))+
+  geom_line()+
+  labs(x = "Month-Year",
+       y = "Average Interest Rate")
+
 
 #linear time trend by grade (add code below)
+lc_clean_grade <- lc_clean %>% 
+  select(int_rate, grade, date) %>% 
+  filter(date != "Jun 2007") %>% # filtering (add comment)
+  group_by(date,grade) %>% 
+  summarise(avg_int_rate = mean(int_rate))
 
+lc_clean_grade %>% 
+  ggplot(aes(x = date,y = avg_int_rate))+
+  geom_line()+
+  facet_wrap(~grade)+
+  labs(x = "Month-Year",
+       y = "Average Interest Rate")
+  
 
 #Train models using OLS regression and k-fold cross-validation
 #The first model has some explanatory variables and a linear time trend
