@@ -1,0 +1,553 @@
+---
+title: "Lecture 1: The Art & Science of using Linear Regression for Prediction"
+
+output: 
+  html_document:
+    theme: cerulean
+    highlight: zenburn
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, load_libraries, include = FALSE}
+library(tidyverse) # the usual stuff: dplyr, readr, and other goodies
+library(lubridate) # to handle dates
+library(GGally) # for correlation-scatterplot matrix
+library(car) # vif() function to check for multicollinearity
+library(ggfortify) # to produce residual diagnostic plots
+library(rsample) # to split dataframe in training- & testing sets
+library(here) # to read files and organise data
+library(janitor) # clean_names()
+library(broom) # use broom:augment() to get tidy table with regression output, residuals, etc
+library(huxtable) # to get summary table of all models produced
+library(caret) # to train more advanced models (k-fold cross-validation, stepwise regression, LASSO)
+
+```
+
+
+# Introduction
+
+The goal of this markdown document is to walk you through the mechanics of designing a predictive model using linear regression. The example we will use is [Lending Club](https://www.lendingclub.com/), a peer-to-peer lender. The goal is to come up with an algorithm that recommends the interest rate to charge to new loans. The lending club has made historical data publicly available and we will use it for this exercise.  
+
+
+## Load and Clean Data
+
+First we need to start by loading the data.
+```{r, load_data, warning=FALSE, message=FALSE}
+
+lc_raw <- read_csv("LendingClub Data.csv",  skip=1) %>%  #since the first row is a title we want to skip it. 
+  clean_names() # use janitor::clean_names()
+```
+
+
+Inspect the data visually and try to understand what different variables mean. Variable definitions can be found in the excel version of the data.
+
+Are there any redundant columns and rows? Are all the variables in the correct format (e.g., numeric, factor, date)? Lets fix it. 
+
+```{r, clean data}
+#examine the structure of the dataframe
+glimpse(lc_raw) 
+
+lc_clean<- lc_raw %>%
+  dplyr::select(-x20:-x80) %>% #delete empty columns
+  filter(!is.na(int_rate)) %>%   #delete empty rows
+  mutate(
+    issue_d = mdy(issue_d),  # lubridate::mdy() to fix date format
+    term = factor(term_months),     # turn 'term' into a categorical variable
+    delinq_2yrs = factor(delinq_2yrs) # turn 'delinq_2yrs' into a categorical variable
+  ) %>% 
+  dplyr::select(-emp_title,-installment, -term_months, everything()) #move some not-so-important variables to the end. 
+    
+```
+
+# Visual investigation of the data
+
+Start with a histogram of interest rates. 
+
+```{r, data_visualisation}
+#histogram of interest rtes
+ggplot(lc_clean, aes(x=int_rate))+  
+  geom_histogram(binwidth=0.01)+scale_x_continuous(labels = scales::percent) +labs(x="Interest Rate")
+
+#histogram with colour for different grades and term.
+ggplot(lc_clean, aes(x=int_rate, fill=grade))+  geom_histogram(binwidth=0.01)+scale_x_continuous(labels = scales::percent)+ labs(x="Interest Rate") 
+
+ggplot(lc_clean, aes(x=int_rate, fill=term))+  geom_histogram(binwidth=0.01)+scale_x_continuous(labels = scales::percent)+ labs(x="Interest Rate") 
+
+#density plot with colour for different grades.
+ggplot(lc_clean, aes(x=int_rate, fill=grade, alpha = 0.2))+  
+  geom_density()+
+  facet_grid(rows = vars(grade))+
+  theme_bw()+
+  theme(legend.position = "none")+
+  scale_x_continuous(labels = scales::percent)+ labs(x="Interest Rate")
+
+#boxplot with colour for different home_ownerhsip
+ggplot(lc_clean, aes(x=home_ownership, y=int_rate, colour=home_ownership))+  
+  geom_boxplot()+
+  theme_bw()+
+  theme(legend.position = "none")+
+  coord_flip()+ scale_y_continuous(labels=scales::percent)+
+  labs(y="Interest Rate", x="Home Ownership")+
+  NULL
+
+
+#scatter plots
+ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(y=int_rate, x=loan_amnt)) + 
+  geom_point(size=0.1, alpha=0.5)+ 
+  geom_smooth(method="lm", se=0) + labs(y="Interest Rate", x="Loan Amount ($)")
+
+
+ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(y=int_rate, x=annual_inc)) + 
+  geom_point(size=0.1)+ 
+  geom_smooth(method="lm", se=0) +labs(y="Interest Rate", x="Annual Income ($)")
+
+#box plot for delinquencies
+ggplot(lc_clean , aes(y=int_rate, x=delinq_2yrs, colour= delinq_2yrs)) + 
+  geom_boxplot()+
+  # geom_jitter()+
+  theme_bw()+
+   scale_y_continuous(labels=scales::percent)+
+  theme(legend.position = "none")+
+  labs(
+    title = "Do delinquencies in the last two years impact interest rate charged?",
+    x= "Number of delinquecies in last two years", y="Interest Rate"
+  )
+
+
+```
+
+## Scatterplot- Correlation Matrix
+
+We build a correlation table for the numerical variables and investigate the impact of a number of variables on the interest rate charged graphically.
+
+```{r, correlation table, warning=FALSE, message=FALSE}
+
+# correlation table using GGally::ggpairs()
+# this takes a while to plot
+
+lc_clean %>% 
+  select(term, loan_amnt, dti, annual_inc, int_rate) %>% #keep Y variable last
+  ggpairs(aes(alpha = 0.2, colour = term)) +
+  theme_bw()
+
+```
+
+# Estimating a simple linear regression model.
+
+The first model below does not not have any explanatory variables. The second uses the loan amount as one explanatory variable. It estimates the model that minimizes the square error. 
+
+Is the second model a good fit? Is it an improvement from the first model? 
+
+```{r, simple regression}
+model0<-lm(int_rate~ 1, data = lc_clean)
+summary(model0)
+
+
+model1<-lm(int_rate ~ loan_amnt, data = lc_clean)
+summary(model1)
+
+#Plot residual diagnostics
+autoplot(model1)+
+  theme_bw()
+
+#Comparison of nested models. 
+#We call models nestes if model 0 is a special case of model 1 
+# (where the loan_amnt coefficient is zero)
+anova(model0,model1)
+
+```
+
+# Feature Engineering
+
+We can improve the explanatory power of the model by adding features. This process, sometimes called "Feature Engineering", is more of an art that it is science. Below is a non-exhaustive list of ways in which we engineer features. 
+
+1. Add features directly from the dataset. Some of these features are numerical (e.g., dti, annual income) -- in this case the estimated coefficient $\beta$ has the interpretation of 1 unit of increase in the feature will create $\beta$ units of increase in $y$. Some are categorical (factor) variables (e.g. term, grade) -- in this case the estimated coefficient of one category measures the average difference in variable y between the category and the omitted category.
+2. Add interaction terms. There are three possibilities -- interactions between two categorical variables, one categorical and one numerical variable, two numerical variables. For example, if we believe the loan amount affects the interest rate of 36-month loans more than it does of 60-month loans then this is an interaction hypothesis between a continuous variable (the loan amount) and a categorical variable (the term). Make sure you understand how to interpret these. In **R** we can add interactions between *var1* and *var2* by writing $y \sim var1 * var2$. This notation will include both variables and their interaction term in the regression.  
+3. Add non-linear terms. Sometimes we believe that the effect of a feature on the variable we are trying to predict is non linear. For example, we may believe that a small increase in the loan amount does not affect the interest rate by much, but a larger increase will have a larger impact. We can test this by adding higher powers of the variable to the model. Or we may want to do any other non linear transformation (e.g., taking logarithms to reduce the spread of the variable or using the inverse of a variable to denote an inversely proportional relationship). The estimated coefficient has the same interpretation as the liner model but now applied to the non-linear transformation of the feature. 
+
+In R, you can do non-linear transformations on variables without creating new variables by using the function `poly()` or the `I()` formulation -- see examples of model 4.
+
+In addition to the transformations, we may want to break a continuous variable into a set of dummy variables, e.g., low loan_amnt, med loan_amnt, high loan_amnt, or the deciles of the loan amount. This is a way to allow loan_amnt to have a non-linear impact on the interest rate. Because we don't specify a specific parametric form that this impact will take, this way of capturing non-linear effects is sometimes called non-parametric.
+
+When we compare models with a different set of features we want to choose the model that has the best explanatory power (e.g., higher R square or lowest RMSE). More on this later.
+
+# Multiple regression models
+
+Below are some models with increasing complexity. 
+
+> Which of the four models do you prefer? Why?
+
+
+```{r, simple feature engineering}
+model1a<-lm(int_rate ~ loan_amnt + term +dti + annual_inc, data = lc_clean)
+summary(model1a)
+library(sjPlot)
+
+plot_model(model1a, type = "pred", terms = c("loan_amnt", "term"))
+
+model1b<-lm(int_rate ~ loan_amnt* term +dti + annual_inc, data = lc_clean)
+summary(model1b)
+
+plot_model(model1b, type = "pred", terms = c("loan_amnt", "term"))
+
+```
+```{r, feature engineering}
+#model with more variables
+model2<-lm(int_rate~ loan_amnt + term+ dti+ annual_inc + grade , data = lc_clean)
+summary(model2)
+
+#model with an interaction term
+model3<-lm(int_rate~ loan_amnt*grade + term+ dti+ annual_inc, data = lc_clean)
+summary(model3)
+
+#model with a polynomial term (quadradic) and a non-linear transformation
+model4<-lm(int_rate~ poly(loan_amnt, 2) + term + term:grade + I(1/(dti+1))+ annual_inc + grade, data = lc_clean)
+summary(model4)
+
+#create decile dummy variables for loan amount
+lc_clean <- lc_clean %>% 
+  mutate(loan_amnt_decile = factor(ntile(loan_amnt, 10)))
+#model with decile dummies
+model5<-lm(int_rate~ loan_amnt_decile + term+ dti+ annual_inc + grade , data = lc_clean)
+summary(model5)
+
+#Models 1-4 are nested into each other. 
+#Model 5 is not, therefore the ANOVA command does not 
+#compare it to the rest of the models
+anova(model1, model2, model3, model4, model5)
+
+#Presentation of all results
+huxtable::huxreg(model1, model2, model3, model4,model5, 
+                 number_format = "%.3f")
+
+```
+
+## Detecting problems of multicolinearity
+
+Sometimes features can be highly correlated. For example, annual income is likely to be negatively correlated with debt-to-income ratio. Similarly, loan amount will be positively correlated with loan amount square. In this case the two features convey similar information. This may generate some numerical problems in estimating the model (nearly singular rank matrix). Furthermore, if the model does estimate, the estimated coefficients may be unreliable. This is a problem for inferential statistics (when we actually care about the coefficients) but not such a big problem for prediction (as the prediction will continue to be unbiased and standard errors will estimate correctly).
+
+In any case it is a good idea to check the data for multicolinearity problems. One way of doing this is by calculating the variance inflation factors (VIFs). For individual features the VIF is 1/R^2 of the linear regression of the feature against all other features. If the VIF is large (e.g., more than 10) we have a multicolinearity problem. For more complex variables (e.g., factor variables, polynomials) then R calculates generalized VIF. The details are beyond the scope of this course but they have similar interpretation to the VIF. One way of solving this is the principal component analysis -- we will cover this in the second part of the course. Another is regularization (e.g., LASSO regression) see later in this document. 
+
+Let's check if the last two models we estimated had any multicolinearity problems. **Does model 2 or model 4 suffer from problems of multicolinearity? Should we do anything about it?**
+
+```{r, multicolinearity}
+
+#Testing for multicolinearity
+vif(model2)
+vif(model4)
+
+```
+
+## Testing for heteroskedasticity 
+
+One of the assumptions behind linear regression is that the variance of the error is constant (e.g., it does not vary with the dependent variable or with any of the explanatory features). If it does, the standard errors calculated by the model will not be reliable. This is less of a concern for forecasting and more of a concern for causal inference (i.e., when we care about the magnitude of the estimated coefficients.)
+
+The following command presents a post-estimation test of heteroskedasticity by examining the model's residuals. Failing this tests suggests that there is heteroskedasticity. Passing the test does not necessarily mean there is no heteroskedasticity. 
+
+>Is there any evidence for heteroskedasticity?
+
+```{r, heteroskedasticity}
+#Test for heteroskedasticity
+ncvTest(model2)
+crPlots(model2)
+```
+
+## Out of sample testing
+
+For the regression models we've just run we used the same dataset to estimate the model and then to test how well the model performs. This is "unfair" in the sense that we are setting up the model to do well -- we have chosen the model that does the best in terms of reducing square error in this dataset, which will inevitably lead to problems of overfitting. A natural question will be how would the model perform in a new dataset on which it has not had the chance to train? 
+
+To answer this question we can do validation. The idea is to train the model in a subset of data (the training set) and leave behind some data to test the model's performance (testing set). Because this methods holds out some of the data, it is sometimes referred to as the *hold out method* of cross validation. Typically, we want the training set to be larger than the testing set as the model needs a lot of data to train but it's performance can be reliably judged with a smaller dataset. 
+
+However, we should note that doing out of sample testing using this method is wasteful as we only train the model on a subset of the data. Also, it may be prone to problems if the training set happens to be different to the testing set by chance.
+
+> Is the out of sample error larger than the in sample error? By how much? Change the random seed and try again. 
+
+
+```{r, out of sample testing }
+
+#split the data in testing and training. In this case the training set contains 75% of the data. The variable inTrain contains the numbers of the rows that will be in the training set. All other rows will be in the testing set. 
+
+
+set.seed(4444)
+train_test_split <- initial_split(lc_clean, prop = 0.75)
+training <- training(train_test_split)
+testing <- testing(train_test_split)
+
+#Fit model2 to the training set
+model2<-lm(int_rate ~ loan_amnt + term+ dti + annual_inc + grade , data = training)
+
+#Calculate the in sample RMSE of the model
+rmse_training<-sqrt(mean(residuals(model2)^2))
+
+#USe the model to make predictions out of sample in the testing set
+pred<-predict(model2,testing)
+
+# Calculate the out of sample RMSE of the model
+rmse_testing<- RMSE(pred,testing$int_rate)
+
+
+print(paste0("RMSE in sample: ", rmse_training))
+
+print(paste0("RMSE out of sample: ", rmse_testing))
+
+#The relative increase in RMSE by testing the model out of sample
+print(paste0("Increase in error: ",round(((rmse_testing-rmse_training)/rmse_training)*100,4), "%."))
+
+```
+
+# Sample size estimation
+
+One question that every data scientist should worry about is whether the dataset they are working with is large enough to generate reliable results for the model they are trying to estimate. In general, the larger the better as the coefficients will be estimated with more accuracy. But as with most things in statistics, there are diminishing returns to size -- if the data is large enough then increasing the data set is no longer a priority. *How do you know what what is enough?* Let's investigate this. 
+
+One way of doing this is by creating a fixed testing set that contains say 25% of the data. From the remaining 75% of the data, we will select a training set of size $n$. We will start with really small $n$, estimate the model in this small training set and the see how well it does out of sample in the training set by measuring the RMSE of the predictions. As $n$ increases the model estimation will become more reliable and we expect the root mean square error (RMSE) of out of sample predictions to decrease and the out of sample R-square to increase. For some $n$ large enough, there will be little further gains from increasing $n$.  In other words, to continue improving the performance of the model collecting more rows of the same features will not help. Instead we will need more features / more columns! Can you identify this $n$ for the model we trained above?
+
+In general, this $n$ will depend on how much variability there is in the data (both the dependent variable and the features) and how many features there are in the model.
+
+> How large a dataset is enough to estimate model 2?
+
+```{r, learning curves}
+#select a testing dataset (25% of all data)
+set.seed(102)
+
+train_test_split <- initial_split(lc_clean, prop = 0.75)
+testing <- testing(train_test_split)
+remaining <- training(train_test_split)
+
+#We are now going to run 30 models starting from a tiny training set and progressively increasing the size of the training set. The testing set remains the same in all iterations.
+
+#define some variables
+rmse_sample <- 0
+sample_size<-0
+Rsq_sample<-0
+
+#start a for loop
+for(i in 1:50) {
+#from the remaining dataset select a smaller subset to traing the data
+set.seed(101)
+train_test_split <- initial_split(remaining, prop = 0.005+(i-1)/200)
+training <- training(train_test_split)
+
+sample_size[i]=nrow(training)
+
+#train the model on the small dataset
+model<-lm(int_rate ~ loan_amnt + term+ dti + annual_inc + grade , training)
+#test the performance of the model on the large testing dataset
+pred1<-predict(model,testing)
+rmse_sample[i]<-RMSE(pred1,testing$int_rate)
+Rsq_sample[i]<-R2(pred1,testing$int_rate)
+}
+ggplot(as.data.frame(sample_size), aes(x=sample_size, y=rmse_sample)) + geom_point()
+ggplot(as.data.frame(sample_size), aes(x=sample_size, y=Rsq_sample)) + geom_point() 
+
+```
+
+# k-fold cross validation
+
+The problem with the out of sample validation method we used before is that it only estimates the model once using one randomly chosen subset of data (the training set). What if we were unlucky when we chose that dataset and for whatever reason it's not representative of reality? Also, by estimating the model on a subset of the data we don't make use of all of the information available. 
+
+To overcome this concern, we could repeat the process of choosing a training and a validation set. The k-fold validation method does this by splitting the data into k subsamples (also called folds) of equal size. It then estimates the model k times. Each time one of the k sets is the testing set and the other k-1 sets form the training set on which the model is estimated. It then reports the out of sample performance of the model as the average of these k out of sample validations. Finally, it trains the model one last time on all data to make use of all of the information.
+
+Typically we choose 5-10 folds. The more folds the longer it takes to run (as we need to run the model k+1 times) but the more accurate the results become. *Can you think of a method to figure out how large k should be?* 
+
+Automating k-fold cross validation using the Caret package is easy. **Compare the results of the 10-fold cross validation with the hold-out example we did earlier.**
+
+```{r}
+#the method "cv" stands for cross validation. We re going to create 10 folds.  
+
+control <- trainControl (
+    method="cv",
+    number=10,
+    verboseIter=TRUE) #by setting this to true the model will report its progress after each estimation
+
+#we are going to train the model and report the results using k-fold cross validation
+plsFit<-train(
+    int_rate ~ loan_amnt + term+ dti + annual_inc + grade ,
+    lc_clean,
+   method = "lm",
+    trControl = control
+   )
+  
+
+summary(plsFit)
+
+```
+
+# Feature importance
+
+Not all features have the same explanatory power. Some are more helpful in explaining the variation of the dependent variable. These features will be more helpful in forecasting.
+
+Below we present a visual investigation of the relative importance of different variables. 
+
+```{r, feature importance}
+# The varImp command of the caret package allows us to examine the importance of different variables in on a scale of 0-100. I encourage you to examine the documentation of the varImp command to find out more.
+importance <- varImp(plsFit, scale=TRUE)
+plot(importance)
+
+```
+
+# Automated feature selection and stepwise regression
+
+As the number of features available increases it becomes important to only select the subset of features that have real explanatory power out of sample. Including features without real explanatory power is not helpful (in fact it may be harmful because the model will be more prone to problems of overfitting) and it may be costly as someone needs to collect, store, and validate additional data.
+
+It is tempting to just include the $m$ features with the most explanatory power. And if the features were uncorrelated with each other this would work. But in a world where features are correlated with each other it is difficult if not impossible to know which combination of features will work the best (i.e., have the most out of sample predictive power) without trying.
+
+Selecting the best subset of features is further complicated by the sheer size of the endeavor. In a model with $N$ candidate features there are $2^N$ possible subsets to consider (as each feature could be in or out of the model). So for $N$=10 there are about 1,000 possible subsets, requiring 1,000 estimations. For $N$=100 the number of possible subsets is 1,000,000! 
+
+There are some automated algorithms that search through these possible subsets in an intelligent way. One of them is step-wise regression. Below we use step-wise regression to select the subset of variables that have the best out-of-sample performance (according to AIC) using k-fold cross validation with the caret package. We start with a model with multiple features (non linear terms, interactions.) We will use backward search, other possibilities are forward, and mixed search -- I encourage to research this topic further. **Which model does stepwise regression choose best?**
+
+```{r, automated variable selection}
+
+#set the out-of-sample validation method
+control <- trainControl (
+    method="CV",
+    number=5,
+    verboseIter=FALSE)
+
+#Find the best model with 10 to 16 variables with backward induction
+BackFit <- train(int_rate ~ loan_amnt + term+ dti + annual_inc + grade +grade:loan_amnt,
+    lc_clean,
+    method = "leapBackward", #can chance method to "leapSeq", "leapForward"
+    tuneGrid = data.frame(nvmax = 10:16), #Will find the best model with 10:16 variables. 
+    trControl = control
+)
+
+#show the results of all models
+BackFit$results
+#simmarize the model of best fit and its coefficients
+summary(BackFit$finalModel) #depending on the number of models estimated, the output of this command could be long
+coef(BackFit$finalModel,BackFit$bestTune$nvmax)
+
+```
+
+# Regularization using LASSO regression
+
+All methods of choosing between models we have discussed so far relied on estimating a bunch of models using the Ordinary Least Squares (OLS) algorithm and then comparing their performance based on some (out-of-sample) performance measure (e.g., RMSE).
+
+As such they are passive -- if the algorithm overfits the data we find out through out-of-sample testing but we cannot do anything to correct it! An alternative method that tries to actively avoid overfitting is regularization. There are two popular regularization methods, Ridge regression and LASSO (and methods that combine the two called elastic nets). They are similar and both produce results that suffer less from overfitting compared to OLS regression especially for small datasets. Here we will focus on LASSO which is better suited to models that have a lot of potentially irrelevant features. LASSO stands for Least Absolute Shrinkage and Selection Operator. 
+
+The main idea is to modify the OLS algorithm so that the estimated model becomes less sensitive to the training set. Remember that OLS minimizes the sum of square errors. LASSO minimizes the sum of square error plus $\lambda$ times the sum of absolute values of the estimated coefficients. By changing the least squares model the estimated coefficients and the predictions become biased -- therefore you should not use LASSO if your goal is to do inference. But for predictions, the bias is something worth tolerating as the model’s predictions become less variable (lower error).
+
+The parameter $\lambda\geq 0$ (pronounced lambda) is called a hyper-parameter and it is user specified. If $\lambda = 0$ the model reduces to the OLS algorithm. If $\lambda>0$ the model penalizes the objective for any coefficient that is different to zero. Therefore, for a coefficient to be different from zero by 1 unit it needs to reduce the sum of square errors by at least $\lambda$ units. Therefore, the larger the value of $\lambda$ the more coefficients will be equal to zero (and even those that are not zero will shrink towards zero). Typically, we fit the model multiple times with different values of the hyperparameter $\lambda$ and we select the value of $\lambda$ that generates the lowest out of sample error. 
+
+Since coefficients of different variables are measured in different units, it is important to *standardize* any continuous variable (subtract the mean and divide by standard deviation). Otherwise results will be misleading!
+
+Unlike linear regression, LASSO regression allows us to estimate a model even if we have more parameters to estimate than data points. Useful in a world of big data (e.g., detecting genes that are associated with specific phenotypes / disease). Furthermore, LASSO allows us to estimate a model even if the features are perfectly correlated with one another (problem of multicolinearity).
+
+
+In the example below are running a large model (lot's of variables and interactions leading to 66 coefficients to be estimated) on a relatively small training set (only 1% of the data or 380 observations). We will estimate the model for a 1000 different values of $\lambda$ to find the value of $\lambda$ that produces the best out of sample results using cross validation. Even though the dataset we use is really small, if we choose the value of $\lambda$ careflly, LASSO regression  produces reliable out-of-sample results while the linear regression is unreliable due to problems of overfitting. 
+
+Try changing the seed of the training/testing set -- sometimes the results of the linear regression are OK, many times not. You can change the candidate $\lambda$ values to improve the lasso regression model. 
+
+
+```{r, LASSO compared to OLS, warning=FALSE, message=FALSE}
+
+#split the data in testing and training. The training test is really small.
+set.seed(1234)
+train_test_split <- initial_split(lc_clean, prop = 0.01)
+training <- training(train_test_split)
+testing <- testing(train_test_split)
+
+
+#we will look for the optimal lambda in this sequence
+lambda_seq <- seq(0, 0.01, length = 1001)
+
+#We will use 5-fold cross validation
+control <- trainControl (
+    method="CV",
+    number=5,
+    verboseIter=FALSE)
+
+#LASSO regression with using 5-fold cross validation to select the best lambda amonst the lambdas specified in "lambda_seq".
+lasso <- train(
+ int_rate ~ poly(loan_amnt,3) + term+ dti + annual_inc + grade +grade:poly(loan_amnt,3):term +poly(loan_amnt,3):term +grade:term,
+ data = training,
+ method = "glmnet",
+  preProc = c("center", "scale"), #This option standardizes the data before running the LASSO regression
+  trControl = control,
+  tuneGrid = expand.grid(alpha = 1, lambda = lambda_seq) #alpha=1 specifies to run a LASSO regression. If alpha=0 the model would run ridge regression.
+  )
+plot(lasso)
+
+# Model coefficients
+coef(lasso$finalModel, lasso$bestTune$lambda)
+#Best lambda
+lasso$bestTune$lambda
+# Count of how many coefficients are greater than zero and how many are equal to zero
+sum(coef(lasso$finalModel, lasso$bestTune$lambda)!=0)
+sum(coef(lasso$finalModel, lasso$bestTune$lambda)==0)
+
+# Make predictions
+predictions <- predict(lasso,testing)
+
+# Model prediction performance
+LASSO_results<-data.frame(  RMSE = RMSE(predictions, testing$int_rate), 
+                            Rsquare = R2(predictions, testing$int_rate)
+)
+LASSO_results
+#compare the out of sample performance of the lasso regression to a linear model's predictions on the same training/testing datasets
+model_lm<-lm(int_rate ~ poly(loan_amnt,3) + term+ dti + annual_inc + grade +grade:poly(loan_amnt,3):term +poly(loan_amnt,3):term +grade:term, training)
+predictions <- predict(model_lm,testing)
+
+# Model prediction performance
+OLS_results<-data.frame(
+  RMSE = RMSE(predictions, testing$int_rate),
+  Rsquare = R2(predictions, testing$int_rate)
+)
+
+OLS_results
+
+```
+
+Elastic net regression (work in progress)
+
+
+```{r, elastic logistic regression, warning=FALSE}
+
+#We will use 5-fold cross validation
+control <- trainControl (
+    method="CV",
+    number=5,
+    verboseIter=FALSE)
+
+
+#we will look for the optimal lambda in this sequence
+lambda_seq <- seq(0, 0.01, length = 1001)
+#we will look for the optimal lambda in this sequence
+alpha_seq <- seq(0, 1, length = 11)
+
+elastic_net_model  <- train(
+ int_rate ~ poly(loan_amnt,3) + term+ dti + annual_inc + grade +grade:poly(loan_amnt,3):term +poly(loan_amnt,3):term +grade:term,
+ data = training,
+ method = "glmnet",
+  preProc = c("center", "scale"), #This option standardizes the data before running the regression
+  trControl = control,
+ tuneGrid = expand.grid(alpha = alpha_seq, lambda = lambda_seq) )
+  
+
+
+coef(elastic_net_model$finalModel, elastic_net_model$bestTune$lambda)
+#Best lambda
+elastic_net_model$bestTune
+# Count of how many coefficients are greater than zero and how many are equal to zero
+sum(coef(elastic_net_model$finalModel, elastic_net_model$bestTune$lambda)!=0)
+sum(coef(elastic_net_model$finalModel, elastic_net_model$bestTune$lambda)==0)
+
+# Make predictions
+predictions <- predict(elastic_net_model,testing)
+
+# Model prediction performance
+elastic_net_results<-data.frame(  RMSE = RMSE(predictions, testing$int_rate), 
+                            Rsquare = R2(predictions, testing$int_rate)
+)
+elastic_net_results
+
+
+```
