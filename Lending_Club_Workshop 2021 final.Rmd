@@ -347,7 +347,7 @@ plot(sample_size,Rsq_sample)
 
 >Answer here:
 
-
+#yifan+linli part
 # Regularization using LASSO regression
 
 If we are in the region of the learning curve where we do not have enough data, one option is to use a regularization method such as LASSO.
