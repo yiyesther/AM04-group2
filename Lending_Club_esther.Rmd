@@ -163,7 +163,7 @@ ggplot(lc_clean, aes(x=home_ownership, y=int_rate, fill=home_ownership))+
 
 We start with a simple but quite powerful model.
 
-```{r, simple regression, message=FALSE, eval=FALSE}
+```{r, simple regression, message=FALSE,warning=FALSE}
 # Use the lm command to estimate a regression model with the following variables "loan_amnt",  "term", "dti", "annual_inc", and "grade"
 
 model1<-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc + grade, data = lc_clean)
@@ -185,7 +185,7 @@ d. How wide would the 95% confidence interval of any prediction based on this mo
 
 Let's build progressively more complex models, with more features.
 
-```{r, Feature Engineering, message=FALSE, eval=FALSE}
+```{r, Feature Engineering, message=FALSE, warning=FALSE}
 #Add to model 1 an interaction between loan amount and grade. Use the "var1*var2" notation to define an interaction term in the linear regression model. This will add the interaction and the individual variables to the model. 
 
 model2 <-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc + grade + loan_amnt*grade, data = lc_clean)
@@ -607,7 +607,7 @@ lc_with_bonds%>%
 
 plsFit<-train(
     int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
-    qtr + grade:qtr , #fill your variables here 
+    Price + grade:Price , #fill your variables here 
     lc_with_bonds,
    method = "lm",
     trControl = control
