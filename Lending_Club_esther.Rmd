@@ -57,7 +57,7 @@ lc_raw <- read_csv("LendingClub Data.csv",  skip=1) %>%  #since the first row is
 
 Any data science engagement starts with ICE. Inspect, Clean and Explore the data. For this workshop I have cleaned the data for you. 
 
-```{r, message=FALSE}
+```{r, ICE, warning=FALSE, message=FALSE}
 glimpse(lc_raw) 
 
 lc_clean<- lc_raw %>%
@@ -81,13 +81,13 @@ The data is now in a clean format stored in the dataframe "lc_clean."
 # Q1. Explore the data by building some visualizations as suggested below. Please add at least TWO visualizations of your own. 
 
 
-```{r, message=FALSE}
+```{r, skim_data, warning=FALSE, message=FALSE}
 skim(lc_clean)
 ```
 
 Provide your answers in the code block below. (Look at "Lending_Club_Session1_and_2.html" for some hints on how to do this using ggplot.)
 
-```{r, data_visualisation, message=FALSE}
+```{r, data_visualisation, warning=FALSE, message=FALSE}
 # Build a histogram of interest rates. Make sure it looks nice!
 
 ggplot(lc_clean, aes(x=int_rate))+  
@@ -95,13 +95,13 @@ ggplot(lc_clean, aes(x=int_rate))+
 ```
 
 
-```{r}
+```{r,histogram_color,warning=FALSE, message=FALSE}
 # Build a histogram of interest rates but use different color for loans of different grades 
 
 ggplot(lc_clean, aes(x=int_rate, fill=grade))+  geom_histogram(binwidth=0.01)+scale_x_continuous(labels = scales::percent)+ labs(x="Interest Rate") 
-```
+``` 
 
-```{r}
+```{r,scatter,warning=FALSE, message=FALSE}
 # Produce a scatter plot of loan amount against interest rate and add visually the line of best fit
 ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(y=loan_amnt, x=int_rate)) + 
   geom_point(size=0.1, alpha=0.5)+ 
@@ -110,16 +110,17 @@ ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(y=loan_amnt, x=int_rate)) +
 
 
 
-```{r}
+```{r,scatter_1,warning=FALSE, message=FALSE}
 # Produce a scatter plot of annual income against interest rate and add visually the line of best fit 
 
 ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(y=annual_inc, x=int_rate)) + 
   geom_point(size=0.1, alpha=0.5)+ 
-  geom_smooth(method="lm", se=0) + labs(y="Annual Income ($)", x="Interest Rate")
+  geom_smooth(method="lm", se=0) + 
+  labs(y="Annual Income ($)", x="Interest Rate")
 ```
 
 
-```{r}
+```{r,box,warning=FALSE, message=FALSE}
 # In the same axes, produce box plots of the interest rate for every value of delinquencies
 
 ggplot(lc_clean , aes(y=int_rate, x=delinq_2yrs, fill= delinq_2yrs)) + 
@@ -138,7 +139,7 @@ ggplot(lc_clean , aes(y=int_rate, x=delinq_2yrs, fill= delinq_2yrs)) +
 
 # Add 2 visualizations of your own
 
-```{r}
+```{r,density,warning=FALSE, message=FALSE}
 ggplot(lc_clean, aes(x=int_rate, fill=grade, alpha = 0.2))+  
   geom_density()+
   facet_grid(rows = vars(grade))+
@@ -147,7 +148,7 @@ ggplot(lc_clean, aes(x=int_rate, fill=grade, alpha = 0.2))+
   scale_x_continuous(labels = scales::percent)+ labs(x="Interest Rate",y="Density")
 ```
 
-```{r}
+```{r,box_1,warning=FALSE, message=FALSE}
 ggplot(lc_clean, aes(x=home_ownership, y=int_rate, fill=home_ownership))+  
   geom_boxplot()+
   theme_bw()+
@@ -193,7 +194,7 @@ summary(model2)
 ```
 
 
-```{r}
+```{r,model3,warning=FALSE, message=FALSE}
 #Add to the model you just created above the square and the cube of annual income. Use the poly(var_name,3) command as a variable in the linear regression model.  
 
 model3 <-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc + 
@@ -203,7 +204,7 @@ model3 <-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc +
 
 summary(model3)
 ```
-```{r}
+```{r,model4,warning=FALSE, message=FALSE}
 #Continuing with the previous model, instead of annual income as a continuous variable break it down into quartiles and use quartile dummy variables. You can do this with the following command. 
   
 lc_clean <- lc_clean %>% 
@@ -216,7 +217,7 @@ model4 <- lm(formula = int_rate ~ loan_amnt + term + dti + quartiles_annual_inc 
 summary(model4) 
 ```
 
-```{r}
+```{r,anova,warning=FALSE, message=FALSE}
 #Compare the performance of these four models using the anova command
 anova(model1, model2, model3, model4)
 ```
@@ -234,7 +235,7 @@ Let's check the predictive accuracy of model2 by holding out a subset of the dat
 
 # Comment and explain each row of the code in the chunk below.
 
-```{r, out of sample testing}
+```{r, out of sample testing,warning=FALSE, message=FALSE}
 # split the data in dataframe called "testing" and another one called  "training". The "training" dataframe should have 80% of the data and the "testing" dataframe 20%.
 set.seed(4444)
 train_test_split <- initial_split(lc_clean, prop = 0.80)
@@ -267,7 +268,7 @@ rmse_testing<- RMSE(pred,testing$int_rate)
 
 We can also do out of sample testing using the method of k-fold cross validation. Using the caret package this is easy.
 
-```{r, k-fold cross validation}
+```{r, k-fold cross validation,warning=FALSE, message=FALSE}
 #the method "cv" stands for cross validation. We re going to create 10 folds.  
 
 control <- trainControl (
@@ -293,7 +294,7 @@ summary(plsFit)
 
 #[igrone]What you can infer from the outputs about the robusness of your model? {-} 
 
-```{r}
+```{r,out_of_sample_rmse,warning=FALSE, message=FALSE}
 rse = 0.01052
 out_of_sample_rmse = sqrt((rse^2*37852)/37869)
 ```
@@ -305,7 +306,7 @@ out_of_sample_rmse = sqrt((rse^2*37852)/37869)
 
 We can use the hold out method for out-of-sample testing to check if we have a sufficiently large sample to estimate the model reliably. The idea is to set aside some of the data as a testing set. From the remaining data draw progressively larger training sets and check how the performance of the model on the testing set changes. If the performance no longer improves with larger training sets we know we have a large enough sample.  The code below does this. Examine it and run it with different random seeds. 
 
-```{r, learning curves}
+```{r, learning curves,warning=FALSE, message=FALSE}
 #select a testing dataset (25% of all data)
 set.seed(12)
 
@@ -354,7 +355,7 @@ If we are in the region of the learning curve where we do not have enough data, 
 
 Let's try to estimate a large and complicated model (many interactions and polynomials) on a small training dataset using OLS regression and hold-out validation method.
 
-```{r, OLS model overfitting}
+```{r, OLS model overfitting,warning=FALSE, message=FALSE}
 
 #split the data in testing and training. The training test is really small.
 set.seed(1234)
@@ -392,6 +393,7 @@ lasso <- train(
   )
 ```
 
+```{r,summary_of_lasso,warning=FALSE, message=FALSE}
 # Model coefficients
 coef(lasso$finalModel, lasso$bestTune$lambda)
 
@@ -429,7 +431,7 @@ Let's try to further improve the model's predictive performance. So far we have 
  
 First, investigate graphically whether there are any time trends in the interest rates. (Note that the variable "issue_d" only has information on the month the loan was awarded but not the exact date.) Can you use this information to further improve the forecasting accuracy of your model? Try controlling for time in a linear fashion (i.e., a linear time trend) and controlling for time as quarter-year dummies (this is a method to capture non-linear effects of time -- we assume that the impact of time doesn't change within a quarter but it can chance from quarter to quarter). Finally, check if time affect loans of different grades differently.
 
-```{r, time trends}
+```{r, time_trends,warning=FALSE, message=FALSE}
 
 #linear time trend (add code below)
 lc_clean$issue_d = as.Date(lc_clean$issue_d)
@@ -443,16 +445,25 @@ lc_clean_time <- lc_clean %>%
   group_by(qtr) %>% 
   summarise(avg_int_rate = mean(int_rate))
 
+#quarter_break <- c("2007-2","2007-3","2008-1","2008-2","2008-3","2008-4",
+                   #"2009-1","2009-2","2009-3","2009-4",
+                   #"2010-1","2010-2","2010-3","2010-4",
+                   #"20011-1","2011-2","2011-3")
+
 time_trend <- lc_clean_time %>% 
   ggplot(aes(x = qtr,y = avg_int_rate))+
   geom_line()+
-  labs(x = "Year-Quarter",
-       y = "Average Interest Rate")
+  scale_y_continuous(labels = scales::percent)+
+  labs(title = "How interest rates vary with time",
+       subtitle = "with time expressed in year-quarter",
+      x = "Year-Quarter",
+       y = "Average Interest Rate")+
+  theme_bw()
 time_trend
 
 ```
 
-```{r}
+```{r,time_trends_by_grade,warning=FALSE, message=FALSE}
 #linear time trend by grade (add code below)
 lc_clean_grade <- lc_clean %>% 
   select(int_rate, grade, qtr) %>% 
@@ -464,19 +475,22 @@ time_trend_by_grade <- lc_clean_grade %>%
   ggplot(aes(x = qtr,y = avg_int_rate))+
   geom_line()+
   facet_wrap(~grade)+
-  labs(x = "Year-Quarter",
-       y = "Average Interest Rate")
+  labs(title = "How interest rates vary with time for different credit groups",
+       subtitle = "with time expressed in year-quarter",
+      x = "Year-Quarter",
+       y = "Average Interest Rate")+
+  theme_bw()
 
 time_trend_by_grade
 ```
 
-```{r}
+```{r,time_model_1,warning=FALSE, message=FALSE}
 
 #Train models using OLS regression and k-fold cross-validation
 #The first model has some explanatory variables and a linear time trend
 
 time1<-train(
-  int_rate ~ loan_amnt + term + dti + annual_inc + grade +
+  int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
     issue_d, #fill your variables here "+ issue_d"
   lc_clean,
   method = "lm",
@@ -485,12 +499,12 @@ time1<-train(
 summary(time1)
 ```
 
-```{r}
+```{r,time_model_2,warning=FALSE, message=FALSE}
 
 #The second model has a different linear time trend for each grade class
 time2<-train(
-    int_rate ~ loan_amnt + term + dti + annual_inc + grade + grade:issue_d +
-    issue_d, #fill your variables here 
+    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade + 
+    grade:issue_d + issue_d, #fill your variables here 
     lc_clean,
    method = "lm",
     trControl = control
@@ -501,7 +515,7 @@ summary(time2)
 
 ```
 
-```{r}
+```{r,time_model_3,warning=FALSE, message=FALSE}
 #Change the time trend to a quarter dummy variables.
 #zoo::as.yearqrt() creates quarter dummies 
 lc_clean_quarter<-lc_clean %>%
@@ -510,7 +524,7 @@ lc_clean_quarter<-lc_clean %>%
 
 
 time3<-train(
-    int_rate ~ loan_amnt + term + dti + annual_inc + grade +
+    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
     yq,#fill your variables here 
     lc_clean_quarter,
      method = "lm",
@@ -520,11 +534,11 @@ time3<-train(
 summary(time3)
 ```
 
-```{r}
+```{r,time_model_4,warning=FALSE, message=FALSE}
 #We specify one quarter dummy variable for each grade. This is going to be a large model as there are 19 quarters x 7 grades = 133 quarter-grade dummies.
 time4<-train(
-    int_rate ~  loan_amnt + term + dti + annual_inc + grade +
-    yq + grade:yq,#fill your variables here 
+    int_rate ~  loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
+    yq + grade:yq, #fill your variables here 
     lc_clean_quarter,
      method = "lm",
     trControl = control
@@ -534,7 +548,7 @@ summary(time4)
 ```
 
 
-```{r}
+```{r,compare_time_models,warning=FALSE, message=FALSE}
 data.frame(
   time1$results$RMSE,
   time2$results$RMSE,
@@ -555,7 +569,7 @@ One concern with using time trends for forecasting is that in order to make pred
 Instead, perhaps it's better to find the reasons as to why different periods are different from one another. The csv file "MonthBondYields.csv" contains information on the yield of US Treasuries on the first day of each month. Can you use it to see if you can improve your predictions without using time dummies? 
 
 
-```{r, bond yields}
+```{r, bond yields,warning=FALSE, message=FALSE}
 #load the data to memory as a dataframe
 bond_prices<-readr::read_csv("MonthBondYields .csv")
 
@@ -579,16 +593,21 @@ lc_with_bonds<-lc_clean %>%
 
 # investigate graphically if there is a relationship 
 lc_with_bonds%>%
-  ggplot(aes(x=int_rate, y=Price))+geom_point(size=0.1, alpha=0.5)+geom_smooth(method="lm")
+  ggplot(aes(x=int_rate, y=Price))+
+  geom_point(size=0.1, alpha=0.5)+
+  geom_smooth(method="lm")
 
 lc_with_bonds%>%
-  ggplot(aes(x=int_rate, y=Price, color=grade))+geom_point(size=0.1, alpha=0.5)+geom_smooth(method="lm")
+  ggplot(aes(x=int_rate, y=Price, color=grade))+
+  geom_point(size=0.1, alpha=0.5)+
+  geom_smooth(method="lm")
 
 #let's train a model using the bond information
 
 
 plsFit<-train(
-    int_rate ~  , #fill your variables here 
+    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
+    qtr + grade:qtr , #fill your variables here 
     lc_with_bonds,
    method = "lm",
     trControl = control
