@@ -424,6 +424,13 @@ c. How many coefficients are zero and how many are non-zero in the LASSO model o
 d. Why is it important to standardize continuous variables before running LASSO? 
 
 >Answer here: 
+>a. LASSO performs better than OLS regression. This is because using LASSO, it shrinks the non-zero coefficients towards zero by penalizing the coefficients that introduce high error with low explanatory power. LASSO also reduces multicolinearity issue and overfitting issue of the model. Therefore, LASSO performs better than OLS regression. 
+
+>b. When the seed is 1234, the value of lambda offering best performance is 0.0003103103. This is sensitive to the random seed for example when the seed is 1, lambda will change to 9.009009e-05, which has around 70% of difference from the best lambda when the seed is 1234. This is because the randomness of train-test split will result in different models, i.e., coefficients and residual error. Therefore, the penalty term lambda will have different degree of penalization on coefficients.  
+
+>c. When the seed is 1234, 31 coefficients are zero, while 27 coefficients are non-zero in the LASSO model of best fit. This is sensitive to the random seed for example when the seed is 1, only 16 coefficients are zero, while 42 coefficients are non-zero in the LASSO model of best fit. As explained above in Q7-b, this is because the randomness of train-test split will result in different models, i.e., coefficients and residual error. Therefore, LASSO will penalize different coefficients for the model to avoid overfitting. 
+
+>d. For example, when loan_amnt coefficient is 1.528e-07, meaning that for each million increase of loan amount, the interest rate would increase by 15%. Comparably, the dti coefficient is 3.793e-03, meaning that for each four thousand increase of dti, the interest rate would increase by 15%. The penalization term in LASSO equation can be much smaller for loan_amnt with smaller coefficients compared to dti, given that lambda is constant. Therefore, LASSO would penalize dti more than loan_amnt because of their difference in scales. Using regularization can standardize the different units of different continuous variables, which solves the difference-in-scale problem, thus making the coefficients with different units comparable among each other. 
 
 # Using Time Information
 
@@ -436,12 +443,15 @@ First, investigate graphically whether there are any time trends in the interest
 #linear time trend (add code below)
 lc_clean$issue_d = as.Date(lc_clean$issue_d)
 
+#add a column which indicates year-quarter
 lc_clean <- lc_clean %>% 
   mutate(qtr= as.yearqtr(issue_d))
 
+#calculate the mean interest rate for each quarter
 lc_clean_time <- lc_clean %>% 
   select(int_rate, qtr) %>%
-  filter(qtr != "2007 Q2") %>% # filtering (add comment)
+    #since there is only 1 observation in 2007-Q2 which would not be representative for the entire quarter, we decide to remove it
+  filter(qtr != "2007 Q2") %>% 
   group_by(qtr) %>% 
   summarise(avg_int_rate = mean(int_rate))
 
@@ -450,6 +460,7 @@ lc_clean_time <- lc_clean %>%
                    #"2010-1","2010-2","2010-3","2010-4",
                    #"20011-1","2011-2","2011-3")
 
+#plot the time series average interest rate based on quarters
 time_trend <- lc_clean_time %>% 
   ggplot(aes(x = qtr,y = avg_int_rate))+
   geom_line()+
@@ -459,21 +470,27 @@ time_trend <- lc_clean_time %>%
       x = "Year-Quarter",
        y = "Average Interest Rate")+
   theme_bw()
+
+#visualize
 time_trend
 
 ```
+>Based on the graph above, we can see that over the year 2007 to 2009, interest rate keeps increasing. During 2009 to 2011, the interest rate remains relatively stable with only a small trough in 2010-Q3. The interest rate picked up afterwards. We can see that year-quarter does have an impact on the difference in interest rates and therefore it is necessary to introduce it in the form of dummy variable to the model. 
+
 
 ```{r,time_trends_by_grade,warning=FALSE, message=FALSE}
 #linear time trend by grade (add code below)
 lc_clean_grade <- lc_clean %>% 
   select(int_rate, grade, qtr) %>% 
-  filter(qtr != "2007 Q2") %>% # filtering (add comment)
+  #since there is only 1 observation in 2007-Q2 which would not be representative for the entire quarter, we decide to remove it
+  filter(qtr != "2007 Q2") %>% 
   group_by(qtr,grade) %>% 
   summarise(avg_int_rate = mean(int_rate))
 
+#plot the time series average interest rate based on quarters
 time_trend_by_grade <- lc_clean_grade %>% 
-  ggplot(aes(x = qtr,y = avg_int_rate))+
-  geom_line()+
+  ggplot(aes(x = qtr,y = avg_int_rate, group = grade))+
+  geom_line(aes(color=grade))+
   facet_wrap(~grade)+
   labs(title = "How interest rates vary with time for different credit groups",
        subtitle = "with time expressed in year-quarter",
@@ -481,16 +498,26 @@ time_trend_by_grade <- lc_clean_grade %>%
        y = "Average Interest Rate")+
   theme_bw()
 
+#visualize
 time_trend_by_grade
 ```
+>Based on the graph above, grade C to G has an increase of interest rate over time, while grade A and B remains relatively stable. We can also see that before 2011, interest rate grows steadily in grade C to G while after 2011 it spiked. 
+
 
 ```{r,time_model_1,warning=FALSE, message=FALSE}
 
 #Train models using OLS regression and k-fold cross-validation
 #The first model has some explanatory variables and a linear time trend
 
+#time1<-train(
+  #int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
+    #issue_d, #fill your variables here "+ issue_d"
+  #lc_clean,
+  #method = "lm",
+  #trControl = control)
+
 time1<-train(
-  int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
+  int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) +
     issue_d, #fill your variables here "+ issue_d"
   lc_clean,
   method = "lm",
@@ -498,18 +525,27 @@ time1<-train(
 
 summary(time1)
 ```
+>to discuss the change of code
+>
 
 ```{r,time_model_2,warning=FALSE, message=FALSE}
 
 #The second model has a different linear time trend for each grade class
+#time2<-train(
+    #int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade + 
+    #grade:issue_d + issue_d, #fill your variables here 
+    #lc_clean,
+   #method = "lm",
+    #trControl = control)
+
+#The second model has a different linear time trend for each grade class
 time2<-train(
-    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade + 
-    grade:issue_d + issue_d, #fill your variables here 
+    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + 
+      issue_d + grade +grade:issue_d, #fill your variables here 
     lc_clean,
    method = "lm",
     trControl = control
    )
-  
 
 summary(time2)
 
