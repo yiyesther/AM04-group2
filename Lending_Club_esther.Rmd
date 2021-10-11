@@ -746,6 +746,22 @@ Feel free to investigate more models with different features using the methodolo
 
 >Answer here:
 
+The best model is described in the chunk below with the outlined variable. When choosing the best model out of all the ones constructed in previous questions, we compared the RMSE of each model and selected the one with the lowest RMSE which does not include time-trend variables. Secondly, the significance of each variables are considered when choosing the best combination of variables to avoid overfitting. For example, by including "dti", we can actually improve the RMSE further by 0.000001. However, this complicates the model and this complexity further adds to the minor explanarotory power of "dit" in this model.
+
+```{r,bestmodel,message=FALSE,warning=FALSE}
+bestmodel<-train(
+    int_rate ~ loan_amnt + term + loan_amnt:grade + log(annual_inc) + grade + 
+    Price + grade:Price , #fill your variables here 
+    lc_with_bonds,
+   method = "lm",
+    trControl = control
+   )
+summary(bestmodel)
+
+```
+
+
+
 ## Q11. Use other publicly available datasets to further improve performance (e.g., quarterly data on US inflation or [CPI](https://fred.stlouisfed.org/series/CPALTT01USQ657N)).
 
 # Explain why you think the additional data will make a difference and check if it does.{-}
