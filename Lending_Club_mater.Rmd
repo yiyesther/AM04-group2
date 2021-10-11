@@ -795,6 +795,8 @@ summary(bestmodel)
 
 ## Q11. Use other publicly available datasets to further improve performance (e.g., quarterly data on US inflation or [CPI](https://fred.stlouisfed.org/series/CPALTT01USQ657N)).
 
+
+
 # Explain why you think the additional data will make a difference and check if it does.{-}
 ```{r,cpi,message=FALSE,warning=FALSE}
 # Import the consumer price index data 
