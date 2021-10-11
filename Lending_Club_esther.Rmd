@@ -470,7 +470,9 @@ lasso <- train(
 ```{r,summary_of_lasso,warning=FALSE, message=FALSE}
 # Model coefficients
 coef(lasso$finalModel, lasso$bestTune$lambda)
+```
 
+```{r,lambda,warning=FALSE, message=FALSE}
 # Best lambda
 lasso$bestTune$lambda
 
@@ -481,6 +483,10 @@ sum(coef(lasso$finalModel, lasso$bestTune$lambda)==0)
 
 # Make predictions
 predictions <- predict(lasso,testing)
+
+```
+
+```{r,prediction_performance,warning=FALSE, message=FALSE}
 
 # Model prediction performance
 
@@ -498,13 +504,14 @@ c. How many coefficients are zero and how many are non-zero in the LASSO model o
 d. Why is it important to standardize continuous variables before running LASSO? 
 
 >Answer here: 
->a. LASSO performs better than OLS regression. This is because using LASSO, it shrinks the non-zero coefficients towards zero by penalizing the coefficients that introduce high error with low explanatory power. LASSO also reduces multicolinearity issue and overfitting issue of the model. Therefore, LASSO performs better than OLS regression. 
 
->b. When the seed is 1234, the value of lambda offering best performance is 0.0003103103. This is sensitive to the random seed for example when the seed is 1, lambda will change to 9.009009e-05, which has around 70% of difference from the best lambda when the seed is 1234. This is because the randomness of train-test split will result in different models, i.e., coefficients and residual error. Therefore, the penalty term lambda will have different degree of penalization on coefficients.  
+a. LASSO performs better than OLS regression. This is because using LASSO, it shrinks the non-zero coefficients towards zero by penalizing the coefficients that introduce high error with low explanatory power. LASSO also reduces multicolinearity issue and overfitting issue of the model. Therefore, LASSO performs better than OLS regression. 
 
->c. When the seed is 1234, 31 coefficients are zero, while 27 coefficients are non-zero in the LASSO model of best fit. This is sensitive to the random seed for example when the seed is 1, only 16 coefficients are zero, while 42 coefficients are non-zero in the LASSO model of best fit. As explained above in Q7-b, this is because the randomness of train-test split will result in different models, i.e., coefficients and residual error. Therefore, LASSO will penalize different coefficients for the model to avoid overfitting. 
+b. When the seed is 1234, the value of lambda offering best performance is 0.0003103103. This is sensitive to the random seed for example when the seed is 1, lambda will change to 9.009009e-05, which has around 70% of difference from the best lambda when the seed is 1234. This is because the randomness of train-test split will result in different models, i.e., coefficients and residual error. Therefore, the penalty term lambda will have different degree of penalization on coefficients.  
 
->d. For example, when loan_amnt coefficient is 1.528e-07, meaning that for each million increase of loan amount, the interest rate would increase by 15%. Comparably, the dti coefficient is 3.793e-03, meaning that for each four thousand increase of dti, the interest rate would increase by 15%. The penalization term in LASSO equation can be much smaller for loan_amnt with smaller coefficients compared to dti, given that lambda is constant. Therefore, LASSO would penalize dti more than loan_amnt because of their difference in scales. Using regularization can standardize the different units of different continuous variables, which solves the difference-in-scale problem, thus making the coefficients with different units comparable among each other. 
+c. When the seed is 1234, 31 coefficients are zero, while 27 coefficients are non-zero in the LASSO model of best fit. This is sensitive to the random seed for example when the seed is 1, only 16 coefficients are zero, while 42 coefficients are non-zero in the LASSO model of best fit. As explained above in Q7-b, this is because the randomness of train-test split will result in different models, i.e., coefficients and residual error. Therefore, LASSO will penalize different coefficients for the model to avoid overfitting. 
+
+d. For example, when loan_amnt coefficient is 1.528e-07, meaning that for each million increase of loan amount, the interest rate would increase by 15%. Comparably, the dti coefficient is 3.793e-03, meaning that for each four thousand increase of dti, the interest rate would increase by 15%. The penalization term in LASSO equation can be much smaller for loan_amnt with smaller coefficients compared to dti, given that lambda is constant. Therefore, LASSO would penalize dti more than loan_amnt because of their difference in scales. Using regularization can standardize the different units of different continuous variables, which solves the difference-in-scale problem, thus making the coefficients with different units comparable among each other. 
 
 # Using Time Information
 
@@ -528,11 +535,6 @@ lc_clean_time <- lc_clean %>%
   filter(qtr != "2007 Q2") %>% 
   group_by(qtr) %>% 
   summarise(avg_int_rate = mean(int_rate))
-
-#quarter_break <- c("2007-2","2007-3","2008-1","2008-2","2008-3","2008-4",
-                   #"2009-1","2009-2","2009-3","2009-4",
-                   #"2010-1","2010-2","2010-3","2010-4",
-                   #"20011-1","2011-2","2011-3")
 
 #plot the time series average interest rate based on quarters
 time_trend <- lc_clean_time %>% 
@@ -594,7 +596,6 @@ time_trend_by_grade
 temp <- lc_clean
 temp$issue_d=as.POSIXct(temp$issue_d)
 min=min(temp$issue_d)
-as.numeric(difftime(temp$issue_d,min,units='days'))/30
 temp <- temp %>% 
   mutate(cont_date = as.numeric(difftime(temp$issue_d,min,units='days'))/30)
 
@@ -622,7 +623,8 @@ summary(time1)
 
 #The second model has a different linear time trend for each grade class
 time2<-train(
-    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + cont_date + grade +grade:cont_date, #fill your variables here 
+    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + 
+      grade +grade:cont_date, #fill your variables here 
     temp,
    method = "lm",
     trControl = control
@@ -631,6 +633,7 @@ time2<-train(
 summary(time2)
 
 ```
+#
 
 ```{r,time_model_3,warning=FALSE, message=FALSE}
 #Change the time trend to a quarter dummy variables.
@@ -731,6 +734,9 @@ plsFit<-train(
    )
 summary(plsFit)
 ```
+
+Although time trend is a significant variable in the previous model, it is not predictive in future trends of interest rates. Instead of using time as a variable, bond price has more explanatory power for the model. 
+
 ## Q9. Do bond yields have any explanatory power? Do not forget to interpret coeficicents.
 
 >Answer here: 
