@@ -373,7 +373,7 @@ plsFit15<-train(
 summary(plsFit15)
 ```
 
-For the 5 and 15 fold cross validation, the rse will be the same, and therefore the rmse will also be the same. 
+For the 5 and 15 fold cross validation, the rse will be the same, and therefore the rmse will also be the same. The number of folds clearly do not affect the model estimates, because we have a large data set with enough observations. The model is not overfitted. 
 
 
 # Sample size estimation and learning curves
@@ -417,12 +417,12 @@ plot(sample_size,Rsq_sample)
 
 ## Q6. Using the learning curves above, approximately how large of a sample size would we need to estimate model 3 reliably? Once we reach this sample size, if we want to reduce the prediction error further what options do we have?{-}
 
-#1000 would be sufficient
-#Outliers, more explanatory variables, transformation
-
 >Answer here:
 
-#yifan+linli part
+By running the learning curves code with different seeds, we can generally see that the rmse and the r^2 completely stabilise once the sample size is around 1000. The fact that the stabilisation occurs at around n=1000, shows us that the sample is sufficiently large - we have enough data and estimation error will not be a big issue. 
+
+Once we reach this sample size, any further changes in the result of rsme and r^2 are likely due to overfitting problems. If we want to reduce the prediction error further, we could selectively remove outliers in the dataset. Additionally, we could introduce further explanatory variables (where appropriate) and also potentially incorporate (log) transformations for some variables, in order to produce a more representative model. 
+
 # Regularization using LASSO regression
 
 If we are in the region of the learning curve where we do not have enough data, one option is to use a regularization method such as LASSO.
