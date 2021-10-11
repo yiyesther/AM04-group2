@@ -516,10 +516,18 @@ time_trend_by_grade
   #method = "lm",
   #trControl = control)
 
+#convert issue_d date variable from discrete to continuous variable
+temp <- lc_clean
+temp$issue_d=as.POSIXct(temp$issue_d)
+min=min(temp$issue_d)
+as.numeric(difftime(temp$issue_d,min,units='days'))/30
+temp <- temp %>% 
+  mutate(cont_date = as.numeric(difftime(temp$issue_d,min,units='days'))/30)
+
 time1<-train(
   int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) +
-    issue_d, #fill your variables here "+ issue_d"
-  lc_clean,
+    cont_date, #fill your variables here "+ issue_d"
+  temp,
   method = "lm",
   trControl = control)
 
@@ -540,9 +548,8 @@ summary(time1)
 
 #The second model has a different linear time trend for each grade class
 time2<-train(
-    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + 
-      issue_d + grade +grade:issue_d, #fill your variables here 
-    lc_clean,
+    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +grade:cont_date, #fill your variables here 
+    temp,
    method = "lm",
     trControl = control
    )
