@@ -548,7 +548,7 @@ summary(time1)
 
 #The second model has a different linear time trend for each grade class
 time2<-train(
-    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +grade:cont_date, #fill your variables here 
+    int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + cont_date + grade +grade:cont_date, #fill your variables here 
     temp,
    method = "lm",
     trControl = control
