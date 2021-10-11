@@ -204,6 +204,8 @@ model3 <-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc +
 
 summary(model3)
 ```
+>comment on the model
+
 ```{r,model4,warning=FALSE, message=FALSE}
 #Continuing with the previous model, instead of annual income as a continuous variable break it down into quartiles and use quartile dummy variables. You can do this with the following command. 
   
@@ -221,7 +223,13 @@ summary(model4)
 #Compare the performance of these four models using the anova command
 anova(model1, model2, model3, model4)
 ```
- 
+
+```{r}
+#Presentation of all results
+huxtable::huxreg(model1, model2, model3, model4, 
+                 number_format = "%.3f")
+```
+
 
 ## Q3. Answer the following questions {-}
 a. Which of the four models has the most explanatory power in sample?
@@ -229,6 +237,12 @@ b. In model 2, how do you interpret the estimated coefficient of the interaction
 c. The problem of multicollinearity describes situations in which one feature is correlated with other features (or with a linear combination of other features). If your goal is to use the model to make predictions, should you be concerned about multicollinearity? Why, or why not?
 
 >Answer here:
+
+a. Models 2, 3 and 4 all have an adjusted R^2 value of 0.9204, and therefore, all 3 of these models can explain 92% of the variability in the data. Therefore, in theory, all 3 of these models have the same explanatory power and the further changes introduced in model 3 and 4 do not actually improve the explanatory power of the regression model. Models 2, 3 and 4 have an R^2 value that is approximately 0.076% higher than model 1. Therefore the explanatory power of all models are fairly similar. The p-value for all of these models is also < 2.2e-16. This means that for models 2, 3 and 4, the probability that the model has no explanatory power is less than 2.2e-16. 
+
+b. In model 2, the coefficient of the interaction term between grade B and loan amount is -6.617e-08. The t-value for this term is -2.710 and the p-value is 0.00673. Based on this, although there are some interaction terms that are more significant, this coefficient is still considered to be significant. This is because it has a p-value < 0.05 - therefore we can deduce that this particular interaction term/parameter is significant at the 95% confidence level. 
+
+c. Although multi-collinearity will make it harder to interpret coefficients in the model and it will affect the p-values associated with the coefficients. However, it will NOT affect the capabilities of the model to make predictions. In order to make accurate predictions, the behavior of every variable does not need to be explained, and therefore multi-collinearity will not be relevant to the model's predictive power. Multi-collinearity will however affect the variance associated with prediction. Therefore, although it should not affect the prediction, multi-collinearity should be kept low in order to minimise prediction variance and allow for better estimates of coefficients. 
 
 # Out of sample testing
 Let's check the predictive accuracy of model2 by holding out a subset of the data to use as a testing data set. This method is sometimes referred to as the hold-out method for out-of-sample testing. 
@@ -260,9 +274,18 @@ rmse_testing<- RMSE(pred,testing$int_rate)
 ```
 
 ## Q4. How much does the predictive accuracy of Model 2 deteriorate when we move from in sample to out of sample testing? Is this sensitive to the random seed chosen? Is there any evidence of overfitting? {-}
-#No evidencde for over-fitting
 
 >Answer here:
+
+Based on the code above, we can see that the RMSE 'in sample' (in the training set) is 0.01051. On the other hand, the RMSE 'out of sample' (in the testing set) is 0.01054. Therefore, there is an increase in the error is: 
+
+```{r}
+Percentage_Error_Increase <- 100* ((rmse_testing - rmse_training)/rmse_training)
+Percentage_Error_Increase
+```
+
+This difference is very small, and therefore we can conclude that over-fitting will not be a problem. This difference also highlights the fact that the predictive accuracy of the model will decrease by 0.3213%. Changing the random seed will affect our results, however the result is not overly sensitive to the random seed. We use set.seed(4444) so that we can re-replicate the random seed again when re-running the code. 
+
 
 # k-fold cross validation
 
@@ -289,18 +312,69 @@ plsFit<-train(
 summary(plsFit)
 
 ```
-#5-fold and 15-fold
+
 ## Q5. Compare the out-of-sample RMSE of 10-fold cross validation and the hold-out method. Are they different? Which do you think is more reliable? Are there any drawbacks to the k-fold cross validation method compared to the hold-out method? Determine the out-of-sample RMSE based on 5-fold or 15-fold cross validation.  
 
-#[igrone]What you can infer from the outputs about the robusness of your model? {-} 
 
-```{r,out_of_sample_rmse,warning=FALSE, message=FALSE}
+```{r}
 rse = 0.01052
 out_of_sample_rmse = sqrt((rse^2*37852)/37869)
+out_of_sample_rmse
 ```
 
-
 >Answer here:
+
+The hold-out method creates certain issues by splitting the data into a training and validation data set. This reduces the data used - essentially we don't use every data point for training and for testing - which can affect our results. Comparing the RMSE of this to the 10-fold cross validation method shows that the out of sample RMSE for the 10 fold cross validation method is 0.010518, which is smaller than the out of sample RMSE for the 'hold-out method' (0.01054). This shows that, by overcoming the problems associated with splitting the dataset for training/prediction, we obtain a lower RMSE. The minor reduction in the error is as follows: 
+
+```{r}
+Percentage_Error_Decrease <- 100 * ((rmse_testing - out_of_sample_rmse)/rmse_testing)
+Percentage_Error_Decrease
+```
+
+Evidently, based on the reduction of the rmse, the k-fold cross-validaiton method results are more reliable. This is expected as this method overcomes the problem associated with not using every data point for training and testing. As a result there are no evident drawbacks to using the k-fold cross-validation method when compared to the hold-out method. 
+
+#5-fold and 15-fold
+
+The out of sample rmse for 5-fold and 15-fold cross validation are determined as follows: 
+
+```{r, k-fold cross validation - 5}
+#The method "cv" stands for cross validation. We re going to create 5 folds.  
+control5 <- trainControl (
+    method="cv",
+    number=5,
+    verboseIter=TRUE) #by setting this to true the model will report its progress after each estimation
+
+#we are going to train the model and report the results using k-fold cross validation
+
+plsFit5<-train(
+    int_rate ~ loan_amnt + term+ dti + annual_inc + grade +grade:loan_amnt ,
+    lc_clean,
+   method = "lm",
+    trControl = control5
+   )
+summary(plsFit5)
+```
+
+```{r, k-fold cross validation - 15}
+#The method "cv" stands for cross validation. We re going to create 15 folds.  
+control15 <- trainControl (
+    method="cv",
+    number=15,
+    verboseIter=TRUE) #by setting this to true the model will report its progress after each estimation
+
+#we are going to train the model and report the results using k-fold cross validation
+
+plsFit15<-train(
+    int_rate ~ loan_amnt + term+ dti + annual_inc + grade +grade:loan_amnt ,
+    lc_clean,
+   method = "lm",
+    trControl = control15
+   )
+summary(plsFit15)
+```
+
+For the 5 and 15 fold cross validation, the rse will be the same, and therefore the rmse will also be the same. 
+
 
 # Sample size estimation and learning curves
 
