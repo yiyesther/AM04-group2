@@ -734,8 +734,14 @@ bond_prices <- bond_prices %>%
 #let's see what happened to bond yields over time. Lower bond yields mean the cost of borrowing has gone down.
 
 bond_prices %>%
-  ggplot(aes(x=Date2, y=Price))+geom_point(size=0.1, alpha=0.5)
+  ggplot(aes(x=Date2, y=Price))+geom_line() + 
+  labs(x="Month of the year",
+       y="Bond Price",
+       title="Bond price change over time")
+```
 
+
+```{r, bond yields_1,warning=FALSE, message=FALSE}
 #join the data using a left join
 lc_with_bonds<-lc_clean %>%
   left_join(bond_prices, by = c("issue_d" = "Date2")) %>%
@@ -747,23 +753,28 @@ lc_with_bonds%>%
   ggplot(aes(x=int_rate, y=Price))+
   geom_point(size=0.1, alpha=0.5)+
   geom_smooth(method="lm")
+```
 
+
+```{r, bond yields_3,warning=FALSE, message=FALSE}
 lc_with_bonds%>%
   ggplot(aes(x=int_rate, y=Price, color=grade))+
   geom_point(size=0.1, alpha=0.5)+
   geom_smooth(method="lm")
 
+```
+
+
+```{r, bond yields_4,warning=FALSE, message=FALSE}
 #let's train a model using the bond information
-
-
-plsFit<-train(
+model_bond<-train(
     int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
     Price + grade:Price , #fill your variables here 
     lc_with_bonds,
    method = "lm",
     trControl = control
    )
-summary(plsFit)
+summary(model_bond)
 ```
 
 Although time trend is a significant variable in the previous model, it is not predictive in future trends of interest rates. Instead of using time as a variable, bond price has more explanatory power for the model. 
