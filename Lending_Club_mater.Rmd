@@ -752,7 +752,10 @@ lc_with_bonds<-lc_clean %>%
 lc_with_bonds%>%
   ggplot(aes(x=int_rate, y=Price))+
   geom_point(size=0.1, alpha=0.5)+
-  geom_smooth(method="lm")
+  geom_smooth(method="lm")+
+    labs(x="Interest rate",
+       y="Bond price",
+       title="How interest rate changes based on changes in bond price")
 ```
 
 
@@ -760,7 +763,10 @@ lc_with_bonds%>%
 lc_with_bonds%>%
   ggplot(aes(x=int_rate, y=Price, color=grade))+
   geom_point(size=0.1, alpha=0.5)+
-  geom_smooth(method="lm")
+  geom_smooth(method="lm")+
+  labs(x="Interest rate",
+       y="Bond price",
+       title="How interest rate changes based on changes in bond price for each lending grade")
 
 ```
 
