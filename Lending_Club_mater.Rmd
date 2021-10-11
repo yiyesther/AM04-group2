@@ -551,7 +551,7 @@ time_trend <- lc_clean_time %>%
 time_trend
 
 ```
->Based on the graph above, we can see that over the year 2007 to 2009, interest rate keeps increasing. During 2009 to 2011, the interest rate remains relatively stable with only a small trough in 2010-Q3. The interest rate picked up afterwards. We can see that year-quarter does have an impact on the difference in interest rates and therefore it is necessary to introduce it in the form of dummy variable to the model. 
+Based on the graph above, we can see that over the year 2007 to 2009, interest rate keeps increasing. During 2009 to 2011, the interest rate remains relatively stable with only a small trough in 2010-Q3. The interest rate picked up afterwards. We can see that year-quarter does have an impact on the difference in interest rates and therefore it is necessary to introduce it in the form of dummy variable to the model. 
 
 
 ```{r,time_trends_by_grade,warning=FALSE, message=FALSE}
@@ -577,7 +577,7 @@ time_trend_by_grade <- lc_clean_grade %>%
 #visualize
 time_trend_by_grade
 ```
->Based on the graph above, grade C to G has an increase of interest rate over time, while grade A and B remains relatively stable. We can also see that before 2011, interest rate grows steadily in grade C to G while after 2011 it spiked. 
+Based on the graph above, grade C to G has an increase of interest rate over time, while grade A and B remains relatively stable. We can also see that before 2011, interest rate grows steadily in grade C to G while after 2011 it spiked. 
 
 ```{r,time_model_0,warning=FALSE, message=FALSE}
 #Train models using OLS regression and k-fold cross-validation
@@ -732,14 +732,13 @@ bond_prices <- bond_prices %>%
   select(-starts_with("X"))
 
 #let's see what happened to bond yields over time. Lower bond yields mean the cost of borrowing has gone down.
-
 bond_prices %>%
   ggplot(aes(x=Date2, y=Price))+geom_line() + 
   labs(x="Month of the year",
        y="Bond Price",
        title="Bond price change over time")
 ```
-
+We can see that as over the course of 2007 to 2012, the bond price is quite volatile and follows a general trend of decreasing with no cyclical pattern. The bond price dipped right before 2009 and bounced back at the start of 2009. It also dipped over the first half year of 2010 before it bounced back. 
 
 ```{r, bond yields_1,warning=FALSE, message=FALSE}
 #join the data using a left join
@@ -757,7 +756,7 @@ lc_with_bonds%>%
        y="Bond price",
        title="How interest rate changes based on changes in bond price")
 ```
-
+Based on the graph, we can see a slightly negative correlation between interest rate and bond price.
 
 ```{r, bond yields_3,warning=FALSE, message=FALSE}
 lc_with_bonds%>%
@@ -769,13 +768,13 @@ lc_with_bonds%>%
        title="How interest rate changes based on changes in bond price for each lending grade")
 
 ```
-
+However, when separated into lending grades, the negative correlation between interest rate and bond price becomes stronger in each grade. 
 
 ```{r, bond yields_4,warning=FALSE, message=FALSE}
 #let's train a model using the bond information
 model_bond<-train(
     int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
-    Price + grade:Price , #fill your variables here 
+    grade:Price , #fill your variables here 
     lc_with_bonds,
    method = "lm",
     trControl = control
@@ -783,11 +782,12 @@ model_bond<-train(
 summary(model_bond)
 ```
 
-Although time trend is a significant variable in the previous model, it is not predictive in future trends of interest rates. Instead of using time as a variable, bond price has more explanatory power for the model. 
-
 ## Q9. Do bond yields have any explanatory power? Do not forget to interpret coeficicents.
 
 >Answer here: 
+
+Although time trend is a significant variable in the previous model, it is not predictive in future trends of interest rates. Instead of using time as a variable, bond price has more explanatory power for the future. 
+
 
 ## Q10. Choose a model and describe your methodology {-}
 Feel free to investigate more models with different features using the methodologies covered so far. Present the model you believe predicts interest rates the best. Describe how good it is (including the length of the 95% Confidence Interval of predictions that use this model) and what features it uses. What methodology did you use to choose it? (Do not use time trends or quarter-year dummies in your model as the first cannot be extrapolated into the future reliably and the second cannot be even estimated for future quarters.)
