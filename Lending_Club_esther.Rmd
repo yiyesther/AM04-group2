@@ -579,52 +579,52 @@ time_trend_by_grade
 ```
 >Based on the graph above, grade C to G has an increase of interest rate over time, while grade A and B remains relatively stable. We can also see that before 2011, interest rate grows steadily in grade C to G while after 2011 it spiked. 
 
+```{r,time_model_0,warning=FALSE, message=FALSE}
+#Train models using OLS regression and k-fold cross-validation
+#base model without time trend variable
+time0<-train(
+  #explanatory variables
+  int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc),
+  lc_clean,
+  method = "lm",
+  trControl = control)
+
+summary(time0)
+```
 
 ```{r,time_model_1,warning=FALSE, message=FALSE}
 
 #Train models using OLS regression and k-fold cross-validation
 #The first model has some explanatory variables and a linear time trend
 
-#time1<-train(
-  #int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
-    #issue_d, #fill your variables here "+ issue_d"
-  #lc_clean,
-  #method = "lm",
-  #trControl = control)
-
 #convert issue_d date variable from discrete to continuous variable
 temp <- lc_clean
 temp$issue_d=as.POSIXct(temp$issue_d)
 min=min(temp$issue_d)
 temp <- temp %>% 
-  mutate(cont_date = as.numeric(difftime(temp$issue_d,min,units='days'))/30)
+  mutate(seq_month = as.numeric(difftime(temp$issue_d,min,units='days'))/30)
 
+#fit the model
 time1<-train(
+  #explanatory variables
   int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) +
-    cont_date, #fill your variables here "+ issue_d"
+    #time variable of sequencial number of the month
+    seq_month,
   temp,
   method = "lm",
   trControl = control)
 
 summary(time1)
 ```
->to discuss the change of code
->
+
+We can see that based on the result above, the time variable `seq_month` has significant explanatory power since the p-value is <2e-16, which is less than 5%. Compared to model0, the rse decreased from 0.01052 to 0.01031, i.e., 2%; the R^2 increased from 0.9203 to 0.9234, i.e., 0.34%. We can conclude by including time variable into our model, the performance is better. 
 
 ```{r,time_model_2,warning=FALSE, message=FALSE}
 
 #The second model has a different linear time trend for each grade class
-#time2<-train(
-    #int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade + 
-    #grade:issue_d + issue_d, #fill your variables here 
-    #lc_clean,
-   #method = "lm",
-    #trControl = control)
-
-#The second model has a different linear time trend for each grade class
 time2<-train(
     int_rate ~ loan_amnt + term + loan_amnt*grade + log(annual_inc) + 
-      grade +grade:cont_date, #fill your variables here 
+      grade +grade:seq_month, #fill your variables here 
     temp,
    method = "lm",
     trControl = control
@@ -633,7 +633,8 @@ time2<-train(
 summary(time2)
 
 ```
-#
+We can see that by adding different time trend to each grade class, it generates 7 more interaction variable coefficients than model2. For instance, `gradeA:seq_month` has an coefficient of -4.272e-04, which corresponds to the negative correlation between time and interest rate for grade A in the previously plotted graph in "How interest rates vary with time for different credit groups". This means for grade A, by each 10 months increase, the interest rate will drop 0.4272%, while for grade B, the interest rate will increase by 0.1075%. 
+For all the 7 additional interaction term, the p-values have significant explanatory power since they are less than 5%. Compared to model1, the rse decreased from 0.01031 to 0.009054, i.e., 12.18%; the R^2 increased from 0.9234 to 0.941, i.e., 1.9%. We can conclude by including interaction variable `grade:seq_month` variable into our model, the performance is better.
 
 ```{r,time_model_3,warning=FALSE, message=FALSE}
 #Change the time trend to a quarter dummy variables.
@@ -653,12 +654,15 @@ time3<-train(
   
 summary(time3)
 ```
+We can see that based on the result above, the dummy time variable `yq` has significant explanatory power in most quarters since the p-values are <5%. For instance, `yq2007 Q3` has coefficient of 1.926e-02, which means the interest rate is 0.01926% more compared to `yq2007 Q2`. For instance, `yq2007 Q4` has coefficient of 1.480e-02, which means the interest rate is 0.0148% more compared to `yq2007 Q2`. So on and so forth. 
+Compared to model1, the rse decreased from 0.01031 to 0.00907, i.e., 12%; the R^2 increased from 0.9234 to 0.9408, i.e., 1.88%. We can conclude by including quarter variable `yq` into our model, the performance is better than the one including the month variable `seq_month`. 
+
 
 ```{r,time_model_4,warning=FALSE, message=FALSE}
 #We specify one quarter dummy variable for each grade. This is going to be a large model as there are 19 quarters x 7 grades = 133 quarter-grade dummies.
 time4<-train(
     int_rate ~  loan_amnt + term + loan_amnt*grade + log(annual_inc) + grade +
-    yq + grade:yq, #fill your variables here 
+    grade:yq, #fill your variables here 
     lc_clean_quarter,
      method = "lm",
     trControl = control
@@ -666,22 +670,49 @@ time4<-train(
 
 summary(time4)
 ```
-
-
-```{r,compare_time_models,warning=FALSE, message=FALSE}
-data.frame(
-  time1$results$RMSE,
-  time2$results$RMSE,
-  time3$results$RMSE,
-  time4$results$RMSE)
-
-
-```
+We can see that based on the result above, the interaction variable `grade:yq` has significant explanatory power in most cases since the p-values are <5%. For instance, `gradeB:yq2007 Q3` has a coefficient of `-2.211e-02`, which means the interest rate is 2.211% more compared to grade B in 2007 Q2.  
+Compared to model3, the rse decreased from 0.00907 to 0.007569, i.e., 16.5%; the R^2 increased from 0.9408 to 0.9587, i.e., 1.9%. We can conclude by including interaction variable `grade:yq` into our model, the performance is better than the one including the month variable `yq`. 
 
 
 ## Q8 Based on your analysis above, is there any evidence to suggest that interest rates change over time? Does including time trends / quarter-year dummies improve predictions? Any improvement in prediction performance? {-}
 
 >Answer here:
+
+```{r,compare_time_models,warning=FALSE, message=FALSE}
+
+#organising our results
+data.frame(
+  #base model variables
+  time0$results$RMSE, 
+  time0$results$Rsquared,
+  
+  #base model variables + month variable
+  time1$results$RMSE,
+  time1$results$Rsquared,
+  
+  #base model variables + month variable*grade
+  time2$results$RMSE,
+  time2$results$Rsquared,
+  
+  #base model variables + quarter variable
+  time3$results$RMSE,
+  time3$results$Rsquared,
+  
+  #base model variables + quarter variable*grade
+  time4$results$RMSE,
+  time4$results$Rsquared)
+
+```
+
+Compared to model0, model1's rse decreased from 0.01052 to 0.01031, i.e., 2%; the R^2 increased from 0.9203 to 0.9234, i.e., 0.34%. We can conclude by including time variable into our model, the performance is better. 
+
+Compared to model1, model2's rse decreased from 0.01031 to 0.009054, i.e., 12.18%; the R^2 increased from 0.9234 to 0.941, i.e., 1.9%. We can conclude by including interaction variable `grade:seq_month` variable into our model, the performance is better.
+
+Compared to model1, model3's rse decreased from 0.01031 to 0.00907, i.e., 12%; the R^2 increased from 0.9234 to 0.9408, i.e., 1.88%. We can conclude by including quarter variable `yq` into our model, the performance is better than the model including the month variable `seq_month`. 
+
+Compared to model3, model4's rse decreased from 0.00907 to 0.007569, i.e., 16.5%; the R^2 increased from 0.9408 to 0.9587, i.e., 1.9%. We can conclude by including interaction variable `grade:yq` into our model, the performance is better than the model including the month variable `yq`. 
+
+In summary, we can see that by separating each grade and bring in time trend as variables, we will arrive at better prediction. And quarter variable has more explanatory power than month variable.  
 
 # Using Bond Yields 
 One concern with using time trends for forecasting is that in order to make predictions for future loans we will need to project trends to the future. This is an extrapolation that may not be reasonable, especially if macroeconomic conditions in the future change. Furthermore, if we are using quarter-year dummies, it is not even possible to estimate the coefficient of these dummy variables for future quarters.
