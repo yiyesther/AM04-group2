@@ -765,3 +765,63 @@ summary(bestmodel)
 ## Q11. Use other publicly available datasets to further improve performance (e.g., quarterly data on US inflation or [CPI](https://fred.stlouisfed.org/series/CPALTT01USQ657N)).
 
 # Explain why you think the additional data will make a difference and check if it does.{-}
+```{r,cpi,message=FALSE,warning=FALSE}
+# Import the consumer price index data 
+cpi <- read_csv("ConsumerPriceIndex.csv")
+
+cpi_clean <- cpi %>%
+  mutate(date = ymd(DATE)) %>% #convert to y-m-d format
+  mutate(cpi_delta = 
+           (CPALTT01USQ657N - lag(CPALTT01USQ657N))/lag(CPALTT01USQ657N)) %>% #calculate the percentage change in cpi
+  filter(date >= "2007-07-01" & date <= "2011-12-01") %>% #filter for the desired date that match with our previous tables
+  select(date,cpi_delta,CPALTT01USQ657N) %>% 
+  rename(cpi = CPALTT01USQ657N) #select the desired coloumns
+
+# Join the dataframes
+lc_with_cpi <- lc_with_bonds %>% 
+  arrange(issue_d) %>% #arrange by issue date so that we can use fill to autofill values for months with NA
+  left_join(cpi_clean, by = c("issue_d" = "date")) %>% 
+  fill(cpi_delta) %>% 
+  rename(Grade = grade)
+
+glimpse(lc_with_cpi)
+```
+
+
+```{r,cpi_plot,message=FALSE,warning=FALSE}
+
+# Visualise the relationship
+lc_with_cpi %>% 
+  ggplot(aes(x = cpi_delta, y = int_rate,color=Grade)) +
+  geom_point(size = 0.8) +
+  geom_smooth(se = FALSE)+ #line of best fit
+  scale_x_continuous(labels = scales::percent)+ #convert x axis to percentage scale
+  scale_y_continuous(labels = scales::percent)+ #convert y axis to percentage scale
+  labs(title = "How interest rates vary with change in consumer price index", 
+       subtitle = "in different credit grade groups",
+       x = "Quarterly change in consumer price index (%)",
+       y = "Interest Rate")+
+  theme_bw()
+
+
+
+
+```
+
+```{r,newmodel,warning=FALSE,message=FALSE}
+newmodel<-train(
+    int_rate ~ loan_amnt + term + loan_amnt:Grade + log(annual_inc) + Grade + 
+    Price + Grade:Price + #variables from best model
+    cpi_delta + Grade:cpi_delta + term:cpi_delta, #variables derived from cpi
+    data = lc_with_cpi,
+    method = "lm",
+    trControl = control
+   )
+summary(newmodel)
+```
+
+
+
+# Explain why you think the additional data will make a difference and check if it does.{-}
+
+By including consumer price index, we can include information on inflation thus
