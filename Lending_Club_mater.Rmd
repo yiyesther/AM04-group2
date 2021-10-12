@@ -1,7 +1,7 @@
 ---
 title: "Data Science I, Workshop I: Predicting interest rates at the Lending Club"
-author: "Change this to your GROUP NUMBER"
-date: "Date of submission on Canvas"
+author: "Group 2"
+date: "12/10/2021"
 output:
   html_document:
     theme: cerulean
@@ -236,13 +236,10 @@ a. Which of the four models has the most explanatory power in sample?
 b. In model 2, how do you interpret the estimated coefficient of the interaction term between grade B and loan amount? 
 c. The problem of multicollinearity describes situations in which one feature is correlated with other features (or with a linear combination of other features). If your goal is to use the model to make predictions, should you be concerned about multicollinearity? Why, or why not?
 
->Answer here:
-
-a. Models 2, 3 and 4 all have an adjusted R^2 value of 0.9204, and therefore, all 3 of these models can explain 92% of the variability in the data. Therefore, in theory, all 3 of these models have the same explanatory power and the further changes introduced in model 3 and 4 do not actually improve the explanatory power of the regression model. Models 2, 3 and 4 have an R^2 value that is approximately 0.076% higher than model 1. Therefore the explanatory power of all models are fairly similar. The p-value for all of these models is also < 2.2e-16. This means that for models 2, 3 and 4, the probability that the model has no explanatory power is less than 2.2e-16. 
-
-b. In model 2, the coefficient of the interaction term between grade B and loan amount is -6.617e-08. The t-value for this term is -2.710 and the p-value is 0.00673. Based on this, although there are some interaction terms that are more significant, this coefficient is still considered to be significant. This is because it has a p-value < 0.05 - therefore we can deduce that this particular interaction term/parameter is significant at the 95% confidence level. 
-
-c. Although multi-collinearity will make it harder to interpret coefficients in the model and it will affect the p-values associated with the coefficients. However, it will NOT affect the capabilities of the model to make predictions. In order to make accurate predictions, the behavior of every variable does not need to be explained, and therefore multi-collinearity will not be relevant to the model's predictive power. Multi-collinearity will however affect the variance associated with prediction. Therefore, although it should not affect the prediction, multi-collinearity should be kept low in order to minimise prediction variance and allow for better estimates of coefficients. 
+>
+* a. Models 2, 3 and 4 all have an adjusted R^2 value of 0.9204, and therefore, all 3 of these models can explain 92% of the variability in the data. Therefore, in theory, all 3 of these models have the same explanatory power and the further changes introduced in model 3 and 4 do not actually improve the explanatory power of the regression model. Models 2, 3 and 4 have an R^2 value that is approximately 0.076% higher than model 1. Therefore the explanatory power of all models are fairly similar. The p-value for all of these models is also < 2.2e-16. This means that for models 2, 3 and 4, the probability that the model has no explanatory power is less than 2.2e-16. 
+* b. In model 2, the coefficient of the interaction term between grade B and loan amount is -6.617e-08. The t-value for this term is -2.710 and the p-value is 0.00673. Based on this, although there are some interaction terms that are more significant, this coefficient is still considered to be significant. This is because it has a p-value < 0.05 - therefore we can deduce that this particular interaction term/parameter is significant at the 95% confidence level. 
+* c. Although multi-collinearity will make it harder to interpret coefficients in the model and it will affect the p-values associated with the coefficients. However, it will NOT affect the capabilities of the model to make predictions. In order to make accurate predictions, the behavior of every variable does not need to be explained, and therefore multi-collinearity will not be relevant to the model's predictive power. Multi-collinearity will however affect the variance associated with prediction. Therefore, although it should not affect the prediction, multi-collinearity should be kept low in order to minimise prediction variance and allow for better estimates of coefficients. 
 
 # Out of sample testing
 Let's check the predictive accuracy of model2 by holding out a subset of the data to use as a testing data set. This method is sometimes referred to as the hold-out method for out-of-sample testing. 
@@ -275,16 +272,16 @@ rmse_testing<- RMSE(pred,testing$int_rate)
 
 ## Q4. How much does the predictive accuracy of Model 2 deteriorate when we move from in sample to out of sample testing? Is this sensitive to the random seed chosen? Is there any evidence of overfitting? {-}
 
->Answer here:
-
-Based on the code above, we can see that the RMSE 'in sample' (in the training set) is 0.01051. On the other hand, the RMSE 'out of sample' (in the testing set) is 0.01054. Therefore, there is an increase in the error is: 
+>
+* Based on the code above, we can see that the RMSE 'in sample' (in the training set) is 0.01051. On the other hand, the RMSE 'out of sample' (in the testing set) is 0.01054. Therefore, there is an increase in the error is: 
 
 ```{r}
 Percentage_Error_Increase <- 100* ((rmse_testing - rmse_training)/rmse_training)
 Percentage_Error_Increase
 ```
 
-This difference is very small, and therefore we can conclude that over-fitting will not be a problem. This difference also highlights the fact that the predictive accuracy of the model will decrease by 0.3213%. Changing the random seed will affect our results, however the result is not overly sensitive to the random seed. We use set.seed(4444) so that we can re-replicate the random seed again when re-running the code. 
+>
+* This difference is very small, and therefore we can conclude that over-fitting will not be a problem. This difference also highlights the fact that the predictive accuracy of the model will decrease by 0.3213%. Changing the random seed will affect our results, however the result is not overly sensitive to the random seed. We use set.seed(4444) so that we can re-replicate the random seed again when re-running the code. 
 
 
 # k-fold cross validation
@@ -322,18 +319,18 @@ out_of_sample_rmse = sqrt((rse^2*37852)/37869)
 out_of_sample_rmse
 ```
 
->Answer here:
-
-The hold-out method creates certain issues by splitting the data into a training and validation data set. This reduces the data used - essentially we don't use every data point for training and for testing - which can affect our results. Comparing the RMSE of this to the 10-fold cross validation method shows that the out of sample RMSE for the 10 fold cross validation method is 0.010518, which is smaller than the out of sample RMSE for the 'hold-out method' (0.01054). This shows that, by overcoming the problems associated with splitting the dataset for training/prediction, we obtain a lower RMSE. The minor reduction in the error is as follows: 
+>
+* The hold-out method creates certain issues by splitting the data into a training and validation data set. This reduces the data used - essentially we don't use every data point for training and for testing - which can affect our results. Comparing the RMSE of this to the 10-fold cross validation method shows that the out of sample RMSE for the 10 fold cross validation method is 0.010518, which is smaller than the out of sample RMSE for the 'hold-out method' (0.01054). This shows that, by overcoming the problems associated with splitting the dataset for training/prediction, we obtain a lower RMSE. The minor reduction in the error is as follows: 
 
 ```{r}
 Percentage_Error_Decrease <- 100 * ((rmse_testing - out_of_sample_rmse)/rmse_testing)
 Percentage_Error_Decrease
 ```
 
-Evidently, based on the reduction of the rmse, the k-fold cross-validaiton method results are more reliable. This is expected as this method overcomes the problem associated with not using every data point for training and testing. As a result there are no evident drawbacks to using the k-fold cross-validation method when compared to the hold-out method. 
+>
+* Evidently, based on the reduction of the rmse, the k-fold cross-validaiton method results are more reliable. This is expected as this method overcomes the problem associated with not using every data point for training and testing. As a result there are no evident drawbacks to using the k-fold cross-validation method when compared to the hold-out method. 
 
-# 5-fold and 15-fold
+## 5-fold and 15-fold
 
 The out of sample rmse for 5-fold and 15-fold cross validation are determined as follows: 
 
@@ -417,11 +414,9 @@ plot(sample_size,Rsq_sample)
 
 ## Q6. Using the learning curves above, approximately how large of a sample size would we need to estimate model 3 reliably? Once we reach this sample size, if we want to reduce the prediction error further what options do we have?{-}
 
->Answer here:
-
-By running the learning curves code with different seeds, we can generally see that the rmse and the r^2 completely stabilise once the sample size is around 1000. The fact that the stabilisation occurs at around n=1000, shows us that the sample is sufficiently large - we have enough data and estimation error will not be a big issue. 
-
-Once we reach this sample size, any further changes in the result of rsme and r^2 are likely due to overfitting problems. If we want to reduce the prediction error further, we could selectively remove outliers in the dataset. Additionally, we could introduce further explanatory variables (where appropriate) and also potentially incorporate (log) transformations for some variables, in order to produce a more representative model. 
+>
+* By running the learning curves code with different seeds, we can generally see that the rmse and the r^2 completely stabilise once the sample size is around 1000. The fact that the stabilisation occurs at around n=1000, shows us that the sample is sufficiently large - we have enough data and estimation error will not be a big issue. 
+* Once we reach this sample size, any further changes in the result of rsme and r^2 are likely due to overfitting problems. If we want to reduce the prediction error further, we could selectively remove outliers in the dataset. Additionally, we could introduce further explanatory variables (where appropriate) and also potentially incorporate (log) transformations for some variables, in order to produce a more representative model. 
 
 # Regularization using LASSO regression
 
@@ -503,15 +498,11 @@ b. What value of lambda offers best performance? Is this sensitive to the random
 c. How many coefficients are zero and how many are non-zero in the LASSO model of best fit? Is number of zero (or non-zero) coefficients sensitive on the random seed? Why?
 d. Why is it important to standardize continuous variables before running LASSO? 
 
->Answer here: 
-
-a. LASSO performs better than OLS regression. This is because using LASSO, it shrinks the non-zero coefficients towards zero by penalizing the coefficients that introduce high error with low explanatory power. LASSO also reduces multicolinearity issue and overfitting issue of the model. Therefore, LASSO performs better than OLS regression. 
-
-b. When the seed is 1234, the value of lambda offering best performance is 0.0003103103. This is sensitive to the random seed for example when the seed is 1, lambda will change to 9.009009e-05, which has around 70% of difference from the best lambda when the seed is 1234. This is because the randomness of train-test split will result in different models, i.e., coefficients and residual error. Therefore, the penalty term lambda will have different degree of penalization on coefficients.  
-
-c. When the seed is 1234, 31 coefficients are zero, while 27 coefficients are non-zero in the LASSO model of best fit. This is sensitive to the random seed for example when the seed is 1, only 16 coefficients are zero, while 42 coefficients are non-zero in the LASSO model of best fit. As explained above in Q7-b, this is because the randomness of train-test split will result in different models, i.e., coefficients and residual error. Therefore, LASSO will penalize different coefficients for the model to avoid overfitting. 
-
-d. For example, when loan_amnt coefficient is 1.528e-07, meaning that for each million increase of loan amount, the interest rate would increase by 15%. Comparably, the dti coefficient is 3.793e-03, meaning that for each four thousand increase of dti, the interest rate would increase by 15%. The penalization term in LASSO equation can be much smaller for loan_amnt with smaller coefficients compared to dti, given that lambda is constant. Therefore, LASSO would penalize dti more than loan_amnt because of their difference in scales. Using regularization can standardize the different units of different continuous variables, which solves the difference-in-scale problem, thus making the coefficients with different units comparable among each other. 
+>
+* a. LASSO performs better than OLS regression. This is because using LASSO, it shrinks the non-zero coefficients towards zero by penalizing the coefficients that introduce high error with low explanatory power. LASSO also reduces multicolinearity issue and overfitting issue of the model. Therefore, LASSO performs better than OLS regression. 
+* b. When the seed is 1234, the value of lambda offering best performance is 0.0003103103. This is sensitive to the random seed for example when the seed is 1, lambda will change to 9.009009e-05, which has around 70% of difference from the best lambda when the seed is 1234. This is because the randomness of train-test split will result in different models, i.e., coefficients and residual error. Therefore, the penalty term lambda will have different degree of penalization on coefficients.  
+* c. When the seed is 1234, 31 coefficients are zero, while 27 coefficients are non-zero in the LASSO model of best fit. This is sensitive to the random seed for example when the seed is 1, only 16 coefficients are zero, while 42 coefficients are non-zero in the LASSO model of best fit. As explained above in Q7-b, this is because the randomness of train-test split will result in different models, i.e., coefficients and residual error. Therefore, LASSO will penalize different coefficients for the model to avoid overfitting. 
+* d. For example, when loan_amnt coefficient is 1.528e-07, meaning that for each million increase of loan amount, the interest rate would increase by 15%. Comparably, the dti coefficient is 3.793e-03, meaning that for each four thousand increase of dti, the interest rate would increase by 15%. The penalization term in LASSO equation can be much smaller for loan_amnt with smaller coefficients compared to dti, given that lambda is constant. Therefore, LASSO would penalize dti more than loan_amnt because of their difference in scales. Using regularization can standardize the different units of different continuous variables, which solves the difference-in-scale problem, thus making the coefficients with different units comparable among each other. 
 
 # Using Time Information
 
@@ -551,6 +542,7 @@ time_trend <- lc_clean_time %>%
 time_trend
 
 ```
+
 Based on the graph above, we can see that over the year 2007 to 2009, interest rate keeps increasing. During 2009 to 2011, the interest rate remains relatively stable with only a small trough in 2010-Q3. The interest rate picked up afterwards. We can see that year-quarter does have an impact on the difference in interest rates and therefore it is necessary to introduce it in the form of dummy variable to the model. 
 
 
@@ -577,6 +569,7 @@ time_trend_by_grade <- lc_clean_grade %>%
 #visualize
 time_trend_by_grade
 ```
+
 Based on the graph above, grade C to G has an increase of interest rate over time, while grade A and B remains relatively stable. We can also see that before 2011, interest rate grows steadily in grade C to G while after 2011 it spiked. 
 
 ```{r,time_model_0,warning=FALSE, message=FALSE}
@@ -680,45 +673,52 @@ Compared to model3, the rse decreased from 0.00907 to 0.007569, i.e., 16.5%; the
 
 ## Q8 Based on your analysis above, is there any evidence to suggest that interest rates change over time? Does including time trends / quarter-year dummies improve predictions? Any improvement in prediction performance? {-}
 
->Answer here:
 
 ```{r,compare_time_models,warning=FALSE, message=FALSE}
 
 #organising our results
-data.frame(
+time0_result <- data.frame(
   #base model variables
   time0$results$RMSE, 
-  time0$results$Rsquared,
+  time0$results$Rsquared)
   
   #base model variables + month variable
+time1_result <- data.frame(
   time1$results$RMSE,
-  time1$results$Rsquared,
+  time1$results$Rsquared)
   
   #base model variables + month variable*grade
+time2_result <- data.frame(
   time2$results$RMSE,
-  time2$results$Rsquared,
+  time2$results$Rsquared)
   
   #base model variables + quarter variable
+time3_result <- data.frame(
   time3$results$RMSE,
-  time3$results$Rsquared,
+  time3$results$Rsquared)
   
   #base model variables + quarter variable*grade
+time4_result <- data.frame(
   time4$results$RMSE,
   time4$results$Rsquared)
 
+
+time0_result
+time1_result
+time2_result
+time3_result
+time4_result
 ```
 
-Compared to model0, model1's rse decreased from 0.01052 to 0.01031, i.e., 2%; the R^2 increased from 0.9203 to 0.9234, i.e., 0.34%. We can conclude by including time variable into our model, the performance is better. 
-
-Compared to model1, model2's rse decreased from 0.01031 to 0.009054, i.e., 12.18%; the R^2 increased from 0.9234 to 0.941, i.e., 1.9%. We can conclude by including interaction variable `grade:seq_month` variable into our model, the performance is better.
-
-Compared to model1, model3's rse decreased from 0.01031 to 0.00907, i.e., 12%; the R^2 increased from 0.9234 to 0.9408, i.e., 1.88%. We can conclude by including quarter variable `yq` into our model, the performance is better than the model including the month variable `seq_month`. 
-
-Compared to model3, model4's rse decreased from 0.00907 to 0.007569, i.e., 16.5%; the R^2 increased from 0.9408 to 0.9587, i.e., 1.9%. We can conclude by including interaction variable `grade:yq` into our model, the performance is better than the model including the month variable `yq`. 
-
-In summary, we can see that by separating each grade and bring in time trend as variables, we will arrive at better prediction. And quarter variable has more explanatory power than month variable.  
+>
+* Compared to model0, model1's rse decreased from 0.01052 to 0.01031, i.e., 2%; the R^2 increased from 0.9203 to 0.9234, i.e., 0.34%. We can conclude by including time variable into our model, the performance is better. 
+* Compared to model1, model2's rse decreased from 0.01031 to 0.009054, i.e., 12.18%; the R^2 increased from 0.9234 to 0.941, i.e., 1.9%. We can conclude by including interaction variable `grade:seq_month` variable into our model, the performance is better.
+* Compared to model1, model3's rse decreased from 0.01031 to 0.00907, i.e., 12%; the R^2 increased from 0.9234 to 0.9408, i.e., 1.88%. We can conclude by including quarter variable `yq` into our model, the performance is better than the model including the month variable `seq_month`. 
+* Compared to model3, model4's rse decreased from 0.00907 to 0.007569, i.e., 16.5%; the R^2 increased from 0.9408 to 0.9587, i.e., 1.9%. We can conclude by including interaction variable `grade:yq` into our model, the performance is better than the model including the month variable `yq`. 
+* In summary, we can see that by separating each grade and bring in time trend as variables, we will arrive at better prediction. And quarter variable has more explanatory power than month variable.  
 
 # Using Bond Yields 
+
 One concern with using time trends for forecasting is that in order to make predictions for future loans we will need to project trends to the future. This is an extrapolation that may not be reasonable, especially if macroeconomic conditions in the future change. Furthermore, if we are using quarter-year dummies, it is not even possible to estimate the coefficient of these dummy variables for future quarters.
 
 Instead, perhaps it's better to find the reasons as to why different periods are different from one another. The csv file "MonthBondYields.csv" contains information on the yield of US Treasuries on the first day of each month. Can you use it to see if you can improve your predictions without using time dummies? 
@@ -729,13 +729,15 @@ Instead, perhaps it's better to find the reasons as to why different periods are
 bond_prices<-readr::read_csv("MonthBondYields .csv")
 
 #make the date of the bond file comparable to the lending club dataset
-#for some regional date/number (locale) settings this may not work. If it does try running the following line of code in the Console
+#for some regional date/number (locale) settings this may not work. 
+#If it does try running the following line of code in the Console
 #Sys.setlocale("LC_TIME","English")
 bond_prices <- bond_prices %>%
   mutate(Date2=as.Date(paste("01",Date,sep="-"),"%d-%b-%y")) %>%
   select(-starts_with("X"))
 
-#let's see what happened to bond yields over time. Lower bond yields mean the cost of borrowing has gone down.
+#let's see what happened to bond yields over time. 
+#Lower bond yields mean the cost of borrowing has gone down.
 bond_prices %>%
   ggplot(aes(x=Date2, y=Price))+geom_line() + 
   labs(x="Month of the year",
@@ -793,20 +795,17 @@ summary(model_bond)
 
 ## Q9. Do bond yields have any explanatory power? Do not forget to interpret coeficicents.
 
->Answer here: 
-
-We can see from above that for each interaction term `grade:Price`, the coefficient is significant in that p-value = 2e-16, which is less than 5%. And the coefficient of `gradeA:Price` with 1.281e-03 means that for example if bond price increased from 1% yield to 11% yield, there will be 1.281% increase in interest rate for the grade A lenders. Likewise, the coefficient of `gradeB:Price` with -4.484e-03 means that if bond price increased from 1% yield to 11% yield, there will be 4.484% increase in interest rate for grade B lenders. 
-
-Compared to model0, this model's rse decreased from 0.01052 to 0.009584, i.e., 8.9%; the R^2 increased from 0.9203 to 0.9339, i.e., 1.48%. We can conclude that by including bond price into our model, the performance is better. 
-
-Although time trend is a significant variable in the previous model, it is not predictive for future trends of interest rates as discussed above. Thus, instead of using time as a variable, bond price has more explanatory power for the future in this sense. 
+>
+* We can see from above that for each interaction term `grade:Price`, the coefficient is significant in that p-value = 2e-16, which is less than 5%. And the coefficient of `gradeA:Price` with 1.281e-03 means that for example if bond price increased from 1% yield to 11% yield, there will be 1.281% increase in interest rate for the grade A lenders. Likewise, the coefficient of `gradeB:Price` with -4.484e-03 means that if bond price increased from 1% yield to 11% yield, there will be 4.484% increase in interest rate for grade B lenders. 
+* Compared to model0, this model's rse decreased from 0.01052 to 0.009584, i.e., 8.9%; the R^2 increased from 0.9203 to 0.9339, i.e., 1.48%. We can conclude that by including bond price into our model, the performance is better. 
+* Although time trend is a significant variable in the previous model, it is not predictive for future trends of interest rates as discussed above. Thus, instead of using time as a variable, bond price has more explanatory power for the future in this sense. 
 
 
 ## Q10. Choose a model and describe your methodology {-}
+
 Feel free to investigate more models with different features using the methodologies covered so far. Present the model you believe predicts interest rates the best. Describe how good it is (including the length of the 95% Confidence Interval of predictions that use this model) and what features it uses. What methodology did you use to choose it? (Do not use time trends or quarter-year dummies in your model as the first cannot be extrapolated into the future reliably and the second cannot be even estimated for future quarters.)
 
->Answer here:
-
+>
 The best model is described in the chunk below with the outlined variable. When choosing the best model out of all the ones constructed in previous questions, we compared the RMSE of each model and selected the one with the lowest RMSE which does not include time-trend variables. Secondly, the significance of each variables are considered when choosing the best combination of variables to avoid overfitting. For example, by including "dti", we can actually improve the RMSE further by 0.000001. However, this complicates the model and this complexity further adds to the minor explanarotory power of "dit" in this model.
 
 ```{r,bestmodel,message=FALSE,warning=FALSE}
@@ -828,19 +827,25 @@ summary(bestmodel)
 
 # Explain why you think the additional data will make a difference and check if it does.{-}
 
+>
 In previous questions, it was found that time variables (i.e. issue_d, yq, qtr...), which is a significant variable in the model, does help improve the RMSE of the model but it has low explanatory power. By including consumer price index, we can include information on inflation over time, thus replacing the time variables. In fractional reserve banking, CPI is inversely related to interest rate, thus it is expected that there is going to be a negative gradient for CPI in the model.
 
 ```{r,cpi,message=FALSE,warning=FALSE}
 # Import the consumer price index data 
 cpi <- read_csv("ConsumerPriceIndex.csv")
 
-cpi_clean <- cpi %>%
-  mutate(date = ymd(DATE)) %>% #convert to y-m-d format
-  mutate(cpi_delta = 
-           (CPALTT01USQ657N - lag(CPALTT01USQ657N))/lag(CPALTT01USQ657N), #calculate the percentage change in cpi
-         yq = as.yearqtr(cpi$DATE, format = "%Y-%m-%d")) %>%  #convert the DATE variable into quarters
-  filter(date >= "2007-07-01" & date <= "2011-12-01") %>% #filter for the desired date that match with our previous tables
-  select(date,yq,cpi_delta,CPALTT01USQ657N) %>% #select the desired coloumns
+cpi_clean <- cpi
+  #convert to y-m-d format
+  mutate(date = ymd(DATE)) %>%
+  #calculate the percentage change in cpi
+    mutate(cpi_delta = 
+           (CPALTT01USQ657N - lag(CPALTT01USQ657N))/lag(CPALTT01USQ657N), 
+         #convert the DATE variable into quarters
+           yq = as.yearqtr(cpi$DATE, format = "%Y-%m-%d")) %>%  
+  #filter for the desired date that match with our previous tables
+    filter(date >= "2007-07-01" & date <= "2011-12-01") %>% 
+    #select the desired columns
+  select(date,yq,cpi_delta,CPALTT01USQ657N) %>% 
   rename(cpi = CPALTT01USQ657N) 
 
 glimpse(cpi_clean)
@@ -849,8 +854,10 @@ glimpse(cpi_clean)
 ```{r,int_cpi,message=FALSE,warning=FALSE}
 int_cpi <- lc_with_bonds %>% 
   group_by(qtr) %>% 
-  summarise(mean_int_rate = mean(int_rate)) %>% #calculate mean quarterly interest rate
-  mutate(int_delta = (mean_int_rate - lag(mean_int_rate))/lag(mean_int_rate)) %>% #calculate change in interest rate
+  #calculate mean quarterly interest rate
+  summarise(mean_int_rate = mean(int_rate)) %>% 
+  #calculate change in interest rate
+  mutate(int_delta = (mean_int_rate - lag(mean_int_rate))/lag(mean_int_rate)) %>% 
   left_join(cpi_clean, by = c("qtr" = "yq"))
 
 int_cpi[is.na(int_cpi)] <- 0 #The first int_delta will be NA
@@ -862,7 +869,8 @@ glimpse(int_cpi)
 ```{r,lc_with_cpi,warning=FALSE,message=FALSE}
 # Join the dataframes
 lc_with_cpi <- lc_with_bonds %>% 
-  arrange(issue_d) %>% #arrange by issue date so that we can use fill to autofill values for months with NA
+  #arrange by issue date so that we can use fill to autofill values for months with NA
+  arrange(issue_d) %>% 
   left_join(cpi_clean, by = c("issue_d" = "date")) %>% 
   fill(cpi_delta) %>% 
   rename(Grade = grade)
@@ -879,8 +887,10 @@ int_cpi %>%
   ggplot(aes(x = cpi_delta, y = mean_int_rate)) +
   geom_point(size = 0.8) +
   geom_smooth(se = FALSE)+ #line of best fit
-  scale_x_continuous(labels = scales::percent)+ #convert x axis to percentage scale
-  scale_y_continuous(labels = scales::percent)+ #convert y axis to percentage scale
+  #convert x axis to percentage scale
+  scale_x_continuous(labels = scales::percent)+ 
+  #convert y axis to percentage scale
+  scale_y_continuous(labels = scales::percent)+ 
   labs(title = "How interest rates vary with change in consumer price index", 
        x = "Quarterly change in consumer price index (%)",
        y = "Mean quarterly Interest Rate")+
@@ -902,5 +912,5 @@ newmodel<-train(
 summary(newmodel)
 ```
 
-
+>
 In the best model we have derived in Q10, which is from the available variables in the lc dataframe, the RMSE is 0.9584 while in the model built here with CPI, the RMSE is 0.8965. All the CPI (i.e. cpi_delta) related variables are highly significant in the model.

@@ -786,20 +786,16 @@ summary(model_bond)
 
 ## Q9. Do bond yields have any explanatory power? Do not forget to interpret coeficicents.
 
->Answer here: 
-
-We can see from above that for each interaction term `grade:Price`, the coefficient is significant in that p-value = 2e-16, which is less than 5%. And the coefficient of `gradeA:Price` with 1.281e-03 means that for example if bond price increased from 1% yield to 11% yield, there will be 1.281% increase in interest rate for the grade A lenders. Likewise, the coefficient of `gradeB:Price` with -4.484e-03 means that if bond price increased from 1% yield to 11% yield, there will be 4.484% increase in interest rate for grade B lenders. 
-
-Compared to model0, this model's rse decreased from 0.01052 to 0.009584, i.e., 8.9%; the R^2 increased from 0.9203 to 0.9339, i.e., 1.48%. We can conclude that by including bond price into our model, the performance is better. 
-
-Although time trend is a significant variable in the previous model, it is not predictive for future trends of interest rates as discussed above. Thus, instead of using time as a variable, bond price has more explanatory power for the future in this sense. 
+>
+* We can see from above that for each interaction term `grade:Price`, the coefficient is significant in that p-value = 2e-16, which is less than 5%. And the coefficient of `gradeA:Price` with 1.281e-03 means that for example if bond price increased from 1% yield to 11% yield, there will be 1.281% increase in interest rate for the grade A lenders. Likewise, the coefficient of `gradeB:Price` with -4.484e-03 means that if bond price increased from 1% yield to 11% yield, there will be 4.484% increase in interest rate for grade B lenders. 
+* Compared to model0, this model's rse decreased from 0.01052 to 0.009584, i.e., 8.9%; the R^2 increased from 0.9203 to 0.9339, i.e., 1.48%. We can conclude that by including bond price into our model, the performance is better. 
+* Although time trend is a significant variable in the previous model, it is not predictive for future trends of interest rates as discussed above. Thus, instead of using time as a variable, bond price has more explanatory power for the future in this sense. 
 
 
 ## Q10. Choose a model and describe your methodology {-}
 Feel free to investigate more models with different features using the methodologies covered so far. Present the model you believe predicts interest rates the best. Describe how good it is (including the length of the 95% Confidence Interval of predictions that use this model) and what features it uses. What methodology did you use to choose it? (Do not use time trends or quarter-year dummies in your model as the first cannot be extrapolated into the future reliably and the second cannot be even estimated for future quarters.)
 
->Answer here:
-
+>
 The best model is described in the chunk below with the outlined variable. When choosing the best model out of all the ones constructed in previous questions, we compared the RMSE of each model and selected the one with the lowest RMSE which does not include time-trend variables. Secondly, the significance of each variables are considered when choosing the best combination of variables to avoid overfitting. For example, by including "dti", we can actually improve the RMSE further by 0.000001. However, this complicates the model and this complexity further adds to the minor explanarotory power of "dit" in this model.
 
 ```{r,bestmodel,message=FALSE,warning=FALSE}
@@ -895,4 +891,4 @@ newmodel<-train(
 summary(newmodel)
 ```
 
-In the best model we have derived in Q10, which is from the available variables in the lc dataframe, the RMSE is 0.9584 while in the model built here with CPI, the RMSE is 0.8965. All the CPI (i.e. cpi_delta) related variables are highly significant in the model.
+* In the best model we have derived in Q10, which is from the available variables in the lc dataframe, the RMSE is 0.9584 while in the model built here with CPI, the RMSE is 0.8965. All the CPI (i.e. cpi_delta) related variables are highly significant in the model.
