@@ -87,42 +87,50 @@ skim(lc_clean)
 
 Provide your answers in the code block below. (Look at "Lending_Club_Session1_and_2.html" for some hints on how to do this using ggplot.)
 
-```{r, data_visualisation, warning=FALSE, message=FALSE}
-# Build a histogram of interest rates. Make sure it looks nice!
-
+```{r,histogram,warning=FALSE,message=FALSE}
+#histogram of interest rtes
 ggplot(lc_clean, aes(x=int_rate))+  
-  geom_histogram(binwidth=0.01)+scale_x_continuous(labels = scales::percent) +labs(x="Interest Rate")
+  geom_histogram(binwidth=0.01)+
+  scale_x_continuous(labels = scales::percent) +
+  labs(title = "Histogram of Interest Rates",x="Interest Rate")
 ```
 
+The first histogram may tell us something about the distribution of the interest rates among the borrowers, but does not provide any additional information beyond that.
 
-```{r,histogram_color,warning=FALSE, message=FALSE}
-# Build a histogram of interest rates but use different color for loans of different grades 
+```{r,histogram_color,message=FALSE,warning=FALSE}
+#histogram with colour for different grades
+ggplot(lc_clean, aes(x=int_rate, fill=grade))+  geom_histogram(binwidth=0.01)+scale_x_continuous(labels = scales::percent)+ labs(title = "Histogram of Interest Rates by Loan Grade",x="Interest Rate") 
 
-ggplot(lc_clean, aes(x=int_rate, fill=grade))+  geom_histogram(binwidth=0.01)+scale_x_continuous(labels = scales::percent)+ labs(x="Interest Rate") 
-``` 
+```
+
+The second histogram however, provides much deeper insight into what the loans provided, clearly showing a relationsip between the grade of a loan and the associated interest rate. 
 
 ```{r,scatter,warning=FALSE, message=FALSE}
-# Produce a scatter plot of loan amount against interest rate and add visually the line of best fit
-ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(y=loan_amnt, x=int_rate)) + 
-  geom_point(size=0.1, alpha=0.5)+ 
-  geom_smooth(method="lm", se=0) + labs(y="Loan Amount ($)", x="Interest Rate")
+#scatter plot of loan amount against interest rate and add visually the line of best fit
+ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(x = int_rate, y = loan_amnt)) + 
+  geom_jitter(width = 0.003, height = 0.002,
+              size = 0.5) +
+  geom_smooth(method="lm", se=0) + 
+  labs(title = "Interest Rate by Loan Amount", y="Loan Amount ($)", x="Interest Rate")
 ```
 
-
+While the line of fit implies a relationship between the loan amount and the interest rate, the distribution of the points in the scatter plot says otherwise. This plot does not provide any meaningful insight.
 
 ```{r,scatter_1,warning=FALSE, message=FALSE}
-# Produce a scatter plot of annual income against interest rate and add visually the line of best fit 
+#scatter plot of annual income against interest rate and add visually the line of best fit 
 
-ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(y=annual_inc, x=int_rate)) + 
-  geom_point(size=0.1, alpha=0.5)+ 
-  geom_smooth(method="lm", se=0) + 
-  labs(y="Annual Income ($)", x="Interest Rate")
+ggplot(lc_clean[seq(1, nrow(lc_clean), 10), ] , aes(x = int_rate, y = annual_inc)) + 
+  geom_point(size=0.2, alpha=0.5)+ 
+  geom_smooth(method="lm", se=0) +
+  ylim(15000, 40000)+
+  labs(title = "Interest Rate by Income", y="Annual Income ($)", x="Interest Rate")
+
 ```
 
+The nearly flat of this scatter plot and line of fit, also does not provide us with much useful information to work with. A transformation might be needed to better visualise the relationship.
 
 ```{r,box,warning=FALSE, message=FALSE}
-# In the same axes, produce box plots of the interest rate for every value of delinquencies
-
+#box plot for delinquencies
 ggplot(lc_clean , aes(y=int_rate, x=delinq_2yrs, fill= delinq_2yrs)) + 
   geom_boxplot()+
   # geom_jitter()+
@@ -136,6 +144,8 @@ ggplot(lc_clean , aes(y=int_rate, x=delinq_2yrs, fill= delinq_2yrs)) +
 
 ```
 
+We can clearly see from this plot that the number of delinquencies within the past 2 years indeed increases the interest rate charged, up until the 4th delinquency. 
+
 
 ### Add 2 visualizations of your own {-}
 
@@ -145,7 +155,8 @@ ggplot(lc_clean, aes(x=int_rate, fill=grade, alpha = 0.2))+
   facet_grid(rows = vars(grade))+
   theme_bw()+
   theme(legend.position = "none")+
-  scale_x_continuous(labels = scales::percent)+ labs(x="Interest Rate",y="Density")
+  scale_x_continuous(labels = scales::percent)+ 
+  labs(title = "Interest rate density across the various loan grades", x="Interest Rate",y="Density")
 ```
 
 ```{r,box_1,warning=FALSE, message=FALSE}
@@ -154,10 +165,11 @@ ggplot(lc_clean, aes(x=home_ownership, y=int_rate, fill=home_ownership))+
   theme_bw()+
   theme(legend.position = "none")+
   coord_flip()+ scale_y_continuous(labels=scales::percent)+
-  labs(y="Interest Rate", x="Home Ownership")+
+  labs(title = "Interest Rates split by Homeownership", y="Interest Rate", x="Home Ownership")+
   NULL
 ```
-#comment
+
+The results of the density plot are in line of what we would expect from the lending club. We expect that the different loan grades would actually result in a different interest rate classification, as the density plot clearly shows. In our second visualization, it can be seen that interest rates for those who own a house or have a mortgage are lower, as they have sufficient collateral in the case of default. Renters on average do not possess that collateral, which is reflected in higher interest rates. 
 
 # Estimate simple linear regression models
 
@@ -169,7 +181,7 @@ We start with a simple but quite powerful model.
 model1<-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc + grade, data = lc_clean)
 summary(model1)
 
-#comment 
+# In our simple regression model we analyse the dependence of the interest rate on the amount and length of the loan as well as the annual income and loan grade ranking of the borrower. 
 ```
 
 ## Q2. Answer the following questions about model 1 above.{-}
@@ -179,7 +191,11 @@ b. Interpret all the coefficients in the regression.
 c. How much explanatory power does the model have? 
 d. How wide would the 95% confidence interval of any prediction based on this model be? 
 
->Answer here:
+>
+* a. All variables are statistically significant except for the coefficient annual income. 
+* b. The loan amount coefficient tells us that for every 100k in loan value, the interest rate rises by 1%. If the loan term is 60 months, the interest rate is increased by another 3.6%.The debt to income ratio will affect the borrowers interest rate at a factor of 0.0432%. The grade the loan receives will add varying degrees of additional interest to the baseline intercept at 7.16%. 
+* c. The model explains 91.97 % of the variability in the data set. We can therefore say that the explanatory value is fairly strong. 
+* d. The width of the 95% confidence interval will be 2*1.96*Residual Standard Error$ = $2*1.96*0.01056$ = $0.0413952. 
 
 # Feature Engineering
 
@@ -193,6 +209,7 @@ model2 <-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc + grade + l
 summary(model2)
 ```
 
+Adding the variable interaction Loan Amount x Grade, we were able to add statistically significant coeffeicients and thereby lower the F-Stat, thus increasing the fit of the model.
 
 ```{r,model3,warning=FALSE, message=FALSE}
 #Add to the model you just created above the square and the cube of annual income. Use the poly(var_name,3) command as a variable in the linear regression model.  
@@ -204,7 +221,8 @@ model3 <-lm(formula = int_rate ~ loan_amnt + term + dti + annual_inc +
 
 summary(model3)
 ```
->comment on the model
+
+While we have not been able to increase the explanatory power of the model, our adjustments have improved the fit by lowering our F-statistic. Our introduced poly function has failed to make our annual income variable statistically significant. 
 
 ```{r,model4,warning=FALSE, message=FALSE}
 #Continuing with the previous model, instead of annual income as a continuous variable break it down into quartiles and use quartile dummy variables. You can do this with the following command. 
@@ -218,6 +236,9 @@ model4 <- lm(formula = int_rate ~ loan_amnt + term + dti + quartiles_annual_inc 
             data = lc_clean)
 summary(model4) 
 ```
+
+Breaking the annual income variable into quartiles, we are able to derive new statistically significant coefficients, thus further increasing the fit of our model (lowering the F-Stat).
+
 
 ```{r,anova,warning=FALSE, message=FALSE}
 #Compare the performance of these four models using the anova command
