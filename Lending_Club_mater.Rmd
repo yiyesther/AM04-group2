@@ -78,7 +78,7 @@ glimpse(lc_clean)
 
 The data is now in a clean format stored in the dataframe "lc_clean." 
 
-# Q1. Explore the data by building some visualizations as suggested below. Please add at least TWO visualizations of your own. 
+## Q1. Explore the data by building some visualizations as suggested below. {-}
 
 
 ```{r, skim_data, warning=FALSE, message=FALSE}
@@ -137,7 +137,7 @@ ggplot(lc_clean , aes(y=int_rate, x=delinq_2yrs, fill= delinq_2yrs)) +
 ```
 
 
-# Add 2 visualizations of your own
+### Add 2 visualizations of your own {-}
 
 ```{r,density,warning=FALSE, message=FALSE}
 ggplot(lc_clean, aes(x=int_rate, fill=grade, alpha = 0.2))+  
@@ -244,7 +244,6 @@ c. The problem of multicollinearity describes situations in which one feature is
 # Out of sample testing
 Let's check the predictive accuracy of model2 by holding out a subset of the data to use as a testing data set. This method is sometimes referred to as the hold-out method for out-of-sample testing. 
 
-# Comment and explain each row of the code in the chunk below.
 
 ```{r, out of sample testing,warning=FALSE, message=FALSE}
 # split the data in dataframe called "testing" and another one called  "training". The "training" dataframe should have 80% of the data and the "testing" dataframe 20%.
@@ -310,7 +309,7 @@ summary(plsFit)
 
 ```
 
-## Q5. Compare the out-of-sample RMSE of 10-fold cross validation and the hold-out method. Are they different? Which do you think is more reliable? Are there any drawbacks to the k-fold cross validation method compared to the hold-out method? Determine the out-of-sample RMSE based on 5-fold or 15-fold cross validation.  
+## Q5. Compare the out-of-sample RMSE of 10-fold cross validation and the hold-out method. Are they different? Which do you think is more reliable? Are there any drawbacks to the k-fold cross validation method compared to the hold-out method? Determine the out-of-sample RMSE based on 5-fold or 15-fold cross validation. {-}
 
 
 ```{r}
@@ -330,7 +329,8 @@ Percentage_Error_Decrease
 >
 * Evidently, based on the reduction of the rmse, the k-fold cross-validaiton method results are more reliable. This is expected as this method overcomes the problem associated with not using every data point for training and testing. As a result there are no evident drawbacks to using the k-fold cross-validation method when compared to the hold-out method. 
 
-## 5-fold and 15-fold
+>
+* 5-fold and 15-fold:
 
 The out of sample rmse for 5-fold and 15-fold cross validation are determined as follows: 
 
@@ -370,7 +370,8 @@ plsFit15<-train(
 summary(plsFit15)
 ```
 
-For the 5 and 15 fold cross validation, the rse will be the same, and therefore the rmse will also be the same. The number of folds clearly do not affect the model estimates, because we have a large data set with enough observations. The model is not overfitted. 
+>
+* For the 5 and 15 fold cross validation, the rse will be the same, and therefore the rmse will also be the same. The number of folds clearly do not affect the model estimates, because we have a large data set with enough observations. The model is not overfitted. 
 
 
 # Sample size estimation and learning curves
@@ -793,7 +794,7 @@ model_bond<-train(
 summary(model_bond)
 ```
 
-## Q9. Do bond yields have any explanatory power? Do not forget to interpret coeficicents.
+## Q9. Do bond yields have any explanatory power? Do not forget to interpret coeficicents. {-}
 
 >
 * We can see from above that for each interaction term `grade:Price`, the coefficient is significant in that p-value = 2e-16, which is less than 5%. And the coefficient of `gradeA:Price` with 1.281e-03 means that for example if bond price increased from 1% yield to 11% yield, there will be 1.281% increase in interest rate for the grade A lenders. Likewise, the coefficient of `gradeB:Price` with -4.484e-03 means that if bond price increased from 1% yield to 11% yield, there will be 4.484% increase in interest rate for grade B lenders. 
@@ -801,7 +802,7 @@ summary(model_bond)
 * Although time trend is a significant variable in the previous model, it is not predictive for future trends of interest rates as discussed above. Thus, instead of using time as a variable, bond price has more explanatory power for the future in this sense. 
 
 
-## Q10. Choose a model and describe your methodology {-}
+# Q10. Choose a model and describe your methodology {-}
 
 Feel free to investigate more models with different features using the methodologies covered so far. Present the model you believe predicts interest rates the best. Describe how good it is (including the length of the 95% Confidence Interval of predictions that use this model) and what features it uses. What methodology did you use to choose it? (Do not use time trends or quarter-year dummies in your model as the first cannot be extrapolated into the future reliably and the second cannot be even estimated for future quarters.)
 
@@ -822,10 +823,9 @@ summary(bestmodel)
 
 
 
-## Q11. Use other publicly available datasets to further improve performance (e.g., quarterly data on US inflation or [CPI](https://fred.stlouisfed.org/series/CPALTT01USQ657N)).
+# Q11. Use other publicly available datasets to further improve performance (e.g., quarterly data on US inflation or [CPI](https://fred.stlouisfed.org/series/CPALTT01USQ657N)). {-}
 
-
-# Explain why you think the additional data will make a difference and check if it does.{-}
+## Explain why you think the additional data will make a difference and check if it does.{-}
 
 >
 In previous questions, it was found that time variables (i.e. issue_d, yq, qtr...), which is a significant variable in the model, does help improve the RMSE of the model but it has low explanatory power. By including consumer price index, we can include information on inflation over time, thus replacing the time variables. In fractional reserve banking, CPI is inversely related to interest rate, thus it is expected that there is going to be a negative gradient for CPI in the model.
@@ -834,17 +834,17 @@ In previous questions, it was found that time variables (i.e. issue_d, yq, qtr..
 # Import the consumer price index data 
 cpi <- read_csv("ConsumerPriceIndex.csv")
 
-cpi_clean <- cpi
+cpi_clean <- cpi %>% 
   #convert to y-m-d format
   mutate(date = ymd(DATE)) %>%
   #calculate the percentage change in cpi
-    mutate(cpi_delta = 
+  #convert the DATE variable into quarters
+  mutate(cpi_delta = 
            (CPALTT01USQ657N - lag(CPALTT01USQ657N))/lag(CPALTT01USQ657N), 
-         #convert the DATE variable into quarters
            yq = as.yearqtr(cpi$DATE, format = "%Y-%m-%d")) %>%  
   #filter for the desired date that match with our previous tables
-    filter(date >= "2007-07-01" & date <= "2011-12-01") %>% 
-    #select the desired columns
+  filter(date >= "2007-07-01" & date <= "2011-12-01") %>% 
+  #select the desired columns
   select(date,yq,cpi_delta,CPALTT01USQ657N) %>% 
   rename(cpi = CPALTT01USQ657N) 
 
