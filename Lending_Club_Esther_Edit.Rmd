@@ -819,8 +819,10 @@ summary(bestmodel)
 ## Q11. Use other publicly available datasets to further improve performance (e.g., quarterly data on US inflation or [CPI](https://fred.stlouisfed.org/series/CPALTT01USQ657N)).
 
 
-
 # Explain why you think the additional data will make a difference and check if it does.{-}
+
+In previous questions, it was found that time variables (i.e. issue_d, yq, qtr...), which is a significant variable in the model, does help improve the RMSE of the model but it has low explanatory power. By including consumer price index, we can include information on inflation over time, thus replacing the time variables. In fractional reserve banking, CPI is inversely related to interest rate, thus it is expected that there is going to be a negative gradient for CPI in the model.
+
 ```{r,cpi,message=FALSE,warning=FALSE}
 # Import the consumer price index data 
 cpi <- read_csv("ConsumerPriceIndex.csv")
@@ -828,12 +830,16 @@ cpi <- read_csv("ConsumerPriceIndex.csv")
 cpi_clean <- cpi %>%
   mutate(date = ymd(DATE)) %>% #convert to y-m-d format
   mutate(cpi_delta = 
-           (CPALTT01USQ657N - lag(CPALTT01USQ657N))/lag(CPALTT01USQ657N)) %>% #calculate the percentage change in cpi
+           (CPALTT01USQ657N - lag(CPALTT01USQ657N))/lag(CPALTT01USQ657N), #calculate the percentage change in cpi
+         yq = as.yearqtr(cpi$DATE, format = "%Y-%m-%d")) %>%  #convert the DATE variable into quarters
   filter(date >= "2007-07-01" & date <= "2011-12-01") %>% #filter for the desired date that match with our previous tables
-  select(date,cpi_delta,CPALTT01USQ657N) %>% #select the desired coloumns
-  mutate(yq = as.yearqtr(cpi_clean$date, format = "%Y-%m-%d")) %>% #convert the "date" into quarters
+  select(date,yq,cpi_delta,CPALTT01USQ657N) %>% #select the desired coloumns
   rename(cpi = CPALTT01USQ657N) 
 
+glimpse(cpi_clean)
+```
+
+```{r,int_cpi,message=FALSE,warning=FALSE}
 int_cpi <- lc_with_bonds %>% 
   group_by(qtr) %>% 
   summarise(mean_int_rate = mean(int_rate)) %>% #calculate mean quarterly interest rate
@@ -842,6 +848,11 @@ int_cpi <- lc_with_bonds %>%
 
 int_cpi[is.na(int_cpi)] <- 0 #The first int_delta will be NA
 
+glimpse(int_cpi)
+```
+
+
+```{r,lc_with_cpi,warning=FALSE,message=FALSE}
 # Join the dataframes
 lc_with_cpi <- lc_with_bonds %>% 
   arrange(issue_d) %>% #arrange by issue date so that we can use fill to autofill values for months with NA
@@ -884,8 +895,4 @@ newmodel<-train(
 summary(newmodel)
 ```
 
-
-
-# Explain why you think the additional data will make a difference and check if it does.{-}
-
-By including consumer price index, we can include information on inflation thus
+In the best model we have derived in Q10, which is from the available variables in the lc dataframe, the RMSE is 0.9584 while in the model built here with CPI, the RMSE is 0.8965. All the CPI (i.e. cpi_delta) related variables are highly significant in the model.

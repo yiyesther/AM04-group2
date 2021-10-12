@@ -333,7 +333,7 @@ Percentage_Error_Decrease
 
 Evidently, based on the reduction of the rmse, the k-fold cross-validaiton method results are more reliable. This is expected as this method overcomes the problem associated with not using every data point for training and testing. As a result there are no evident drawbacks to using the k-fold cross-validation method when compared to the hold-out method. 
 
-#5-fold and 15-fold
+# 5-fold and 15-fold
 
 The out of sample rmse for 5-fold and 15-fold cross validation are determined as follows: 
 
@@ -633,7 +633,9 @@ time2<-train(
 summary(time2)
 
 ```
+
 We can see that by adding different time trend to each grade class, it generates 7 more interaction variable coefficients than model2. For instance, `gradeA:seq_month` has an coefficient of -4.272e-04, which corresponds to the negative correlation between time and interest rate for grade A in the previously plotted graph in "How interest rates vary with time for different credit groups". This means for grade A, by each 10 months increase, the interest rate will drop 0.4272%, while for grade B, the interest rate will increase by 0.1075%. 
+
 For all the 7 additional interaction term, the p-values have significant explanatory power since they are less than 5%. Compared to model1, the rse decreased from 0.01031 to 0.009054, i.e., 12.18%; the R^2 increased from 0.9234 to 0.941, i.e., 1.9%. We can conclude by including interaction variable `grade:seq_month` variable into our model, the performance is better.
 
 ```{r,time_model_3,warning=FALSE, message=FALSE}
@@ -654,6 +656,7 @@ time3<-train(
   
 summary(time3)
 ```
+
 We can see that based on the result above, the dummy time variable `yq` has significant explanatory power in most quarters since the p-values are <5%. For instance, `yq2007 Q3` has coefficient of 1.926e-02, which means the interest rate is 0.01926% more compared to `yq2007 Q2`. For instance, `yq2007 Q4` has coefficient of 1.480e-02, which means the interest rate is 0.0148% more compared to `yq2007 Q2`. So on and so forth. 
 Compared to model1, the rse decreased from 0.01031 to 0.00907, i.e., 12%; the R^2 increased from 0.9234 to 0.9408, i.e., 1.88%. We can conclude by including quarter variable `yq` into our model, the performance is better than the one including the month variable `seq_month`. 
 
@@ -670,6 +673,7 @@ time4<-train(
 
 summary(time4)
 ```
+
 We can see that based on the result above, the interaction variable `grade:yq` has significant explanatory power in most cases since the p-values are <5%. For instance, `gradeB:yq2007 Q3` has a coefficient of `-2.211e-02`, which means the interest rate is 2.211% more compared to grade B in 2007 Q2.  
 Compared to model3, the rse decreased from 0.00907 to 0.007569, i.e., 16.5%; the R^2 increased from 0.9408 to 0.9587, i.e., 1.9%. We can conclude by including interaction variable `grade:yq` into our model, the performance is better than the one including the month variable `yq`. 
 
@@ -738,6 +742,7 @@ bond_prices %>%
        y="Bond Price",
        title="Bond price change over time")
 ```
+
 We can see that as over the course of 2007 to 2012, the bond price is quite volatile and follows a general trend of decreasing with no cyclical pattern. The bond price dipped right before 2009 and bounced back at the start of 2009. It also dipped over the first half year of 2010 before it bounced back. 
 
 ```{r, bond yields_1,warning=FALSE, message=FALSE}
@@ -756,6 +761,7 @@ lc_with_bonds%>%
        y="Bond price",
        title="How interest rate changes based on changes in bond price")
 ```
+
 Based on the graph, we can see that the observations are quite scattered but follows a slightly negative correlation between interest rate and bond price. 
 
 ```{r, bond yields_3,warning=FALSE, message=FALSE}
@@ -770,6 +776,7 @@ lc_with_bonds%>%
        guide_legend="Grade")
 
 ```
+
 However, when separated into lending grades, the negative correlation between interest rate and bond price becomes stronger within each grade. Therefore, we add the interaction term `grade:Price` in the following model. 
 
 ```{r, bond yields_4,warning=FALSE, message=FALSE}
@@ -819,8 +826,10 @@ summary(bestmodel)
 ## Q11. Use other publicly available datasets to further improve performance (e.g., quarterly data on US inflation or [CPI](https://fred.stlouisfed.org/series/CPALTT01USQ657N)).
 
 
-
 # Explain why you think the additional data will make a difference and check if it does.{-}
+
+In previous questions, it was found that time variables (i.e. issue_d, yq, qtr...), which is a significant variable in the model, does help improve the RMSE of the model but it has low explanatory power. By including consumer price index, we can include information on inflation over time, thus replacing the time variables. In fractional reserve banking, CPI is inversely related to interest rate, thus it is expected that there is going to be a negative gradient for CPI in the model.
+
 ```{r,cpi,message=FALSE,warning=FALSE}
 # Import the consumer price index data 
 cpi <- read_csv("ConsumerPriceIndex.csv")
@@ -828,11 +837,29 @@ cpi <- read_csv("ConsumerPriceIndex.csv")
 cpi_clean <- cpi %>%
   mutate(date = ymd(DATE)) %>% #convert to y-m-d format
   mutate(cpi_delta = 
-           (CPALTT01USQ657N - lag(CPALTT01USQ657N))/lag(CPALTT01USQ657N)) %>% #calculate the percentage change in cpi
+           (CPALTT01USQ657N - lag(CPALTT01USQ657N))/lag(CPALTT01USQ657N), #calculate the percentage change in cpi
+         yq = as.yearqtr(cpi$DATE, format = "%Y-%m-%d")) %>%  #convert the DATE variable into quarters
   filter(date >= "2007-07-01" & date <= "2011-12-01") %>% #filter for the desired date that match with our previous tables
-  select(date,cpi_delta,CPALTT01USQ657N) %>% 
-  rename(cpi = CPALTT01USQ657N) #select the desired coloumns
+  select(date,yq,cpi_delta,CPALTT01USQ657N) %>% #select the desired coloumns
+  rename(cpi = CPALTT01USQ657N) 
 
+glimpse(cpi_clean)
+```
+
+```{r,int_cpi,message=FALSE,warning=FALSE}
+int_cpi <- lc_with_bonds %>% 
+  group_by(qtr) %>% 
+  summarise(mean_int_rate = mean(int_rate)) %>% #calculate mean quarterly interest rate
+  mutate(int_delta = (mean_int_rate - lag(mean_int_rate))/lag(mean_int_rate)) %>% #calculate change in interest rate
+  left_join(cpi_clean, by = c("qtr" = "yq"))
+
+int_cpi[is.na(int_cpi)] <- 0 #The first int_delta will be NA
+
+glimpse(int_cpi)
+```
+
+
+```{r,lc_with_cpi,warning=FALSE,message=FALSE}
 # Join the dataframes
 lc_with_cpi <- lc_with_bonds %>% 
   arrange(issue_d) %>% #arrange by issue date so that we can use fill to autofill values for months with NA
@@ -840,6 +867,7 @@ lc_with_cpi <- lc_with_bonds %>%
   fill(cpi_delta) %>% 
   rename(Grade = grade)
 
+  
 glimpse(lc_with_cpi)
 ```
 
@@ -847,22 +875,20 @@ glimpse(lc_with_cpi)
 ```{r,cpi_plot,message=FALSE,warning=FALSE}
 
 # Visualise the relationship
-lc_with_cpi %>% 
-  ggplot(aes(x = cpi_delta, y = int_rate,color=Grade)) +
+int_cpi %>% 
+  ggplot(aes(x = cpi_delta, y = mean_int_rate)) +
   geom_point(size = 0.8) +
   geom_smooth(se = FALSE)+ #line of best fit
   scale_x_continuous(labels = scales::percent)+ #convert x axis to percentage scale
   scale_y_continuous(labels = scales::percent)+ #convert y axis to percentage scale
   labs(title = "How interest rates vary with change in consumer price index", 
-       subtitle = "in different credit grade groups",
        x = "Quarterly change in consumer price index (%)",
-       y = "Interest Rate")+
+       y = "Mean quarterly Interest Rate")+
   theme_bw()
 
-
-
-
 ```
+
+As we can see in the above plot, when there is a quarterly cpi change between -200% to +200%, the quarterly interest rate will increase more slowly as the quarterly cpi change increases. In other words, the faster cpi increases, the more slowly interest rate increases. Although the quarterly interest rate is calculated by including time information, which is not a good predictor for interest rate, we can still say there is a correlation between cpi_delta and interest rate as cpi_delta also includes time information. These varaibles run parallel in time, and we are using this plot to show that they correlate to each other during this time period, rather than saying that either of them is affected by time.
 
 ```{r,newmodel,warning=FALSE,message=FALSE}
 newmodel<-train(
@@ -877,7 +903,4 @@ summary(newmodel)
 ```
 
 
-
-# Explain why you think the additional data will make a difference and check if it does.{-}
-
-By including consumer price index, we can include information on inflation thus
+In the best model we have derived in Q10, which is from the available variables in the lc dataframe, the RMSE is 0.9584 while in the model built here with CPI, the RMSE is 0.8965. All the CPI (i.e. cpi_delta) related variables are highly significant in the model.
